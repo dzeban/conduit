@@ -12,6 +12,8 @@ func main() {
 		})
 	})
 
+	r.GET("/articles/:slug", articleHandle)
+
 	r.Run() // listen and serve on 0.0.0.0:8080
 
 }
