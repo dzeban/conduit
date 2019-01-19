@@ -1,4 +1,4 @@
-.PHONY: up migrate
+.PHONY: up down stop migrate
 
 up:
 	docker-compose up -d
@@ -10,4 +10,4 @@ stop:
 	docker-compose stop
 
 migrate:
-	migrate -source file://migrations -database postgresql://postgres:postgres@localhost:5432/conduit?sslmode=disable up
+	migrations/migrate -source file://migrations -database postgresql://postgres:postgres@localhost:5432/conduit?sslmode=disable up
