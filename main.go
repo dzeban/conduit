@@ -7,19 +7,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	PROGRAM_NAME = "conduit"
-	DEFAULT_PORT = 8080
-	DEFAULT_DSN  = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
-)
-
 // Initialize config
 func init() {
-	viper.SetDefault("Port", DEFAULT_PORT)
-	viper.SetDefault("DSN", DEFAULT_DSN)
+	const (
+		programName = "conduit"
+		defaultPort = 8080
+		defaultDSN  = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
+	)
 
-	pflag.IntP("port", "p", DEFAULT_PORT, "Listen port")
-	pflag.StringP("dsn", "d", DEFAULT_DSN, "Data source name (database connection string)")
+	viper.SetDefault("Port", defaultPort)
+	viper.SetDefault("DSN", defaultDSN)
+
+	pflag.IntP("port", "p", defaultPort, "Listen port")
+	pflag.StringP("dsn", "d", defaultDSN, "Data source name (database connection string)")
 
 	config := pflag.StringP("config", "c", "", "Path to config file")
 	pflag.Parse()
@@ -33,13 +33,16 @@ func init() {
 	}
 
 	viper.BindPFlags(pflag.CommandLine)
-	viper.SetEnvPrefix(PROGRAM_NAME)
+	viper.SetEnvPrefix(programName)
 	viper.AutomaticEnv()
 }
 
 func main() {
 	var config Config
-	viper.Unmarshal(&config)
+	err := viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatalf("failed to unmarshal config: %s\n", err)
+	}
 
 	server := NewServer(config)
 	server.Run()
