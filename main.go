@@ -44,6 +44,10 @@ func main() {
 		log.Fatalf("failed to unmarshal config: %s\n", err)
 	}
 
-	server := NewServer(config)
+	server, err := NewServer(config)
+	if err != nil {
+		panic(err)
+	}
+
 	server.Run()
 }
