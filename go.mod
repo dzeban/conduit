@@ -13,6 +13,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.3.1
+	github.com/stretchr/testify v1.2.2
 	github.com/ugorji/go/codec v0.0.0-20190128213124-ee1426cffec0 // indirect
 	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
