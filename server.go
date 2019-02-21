@@ -73,7 +73,7 @@ func (s *Server) HandleArticles(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonArticles)
 }
 
-// HandleArticle is a handler for /article/:slug API endpoint
+// HandleArticle is a handler for /article/{slug} API endpoint
 func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	slug := vars["slug"]
