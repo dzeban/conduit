@@ -49,5 +49,6 @@ func main() {
 		panic(err)
 	}
 
+	log.Printf("Start listening on %d\n", config.Port)
 	server.Run()
 }

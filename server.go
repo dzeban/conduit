@@ -1,12 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/postgres"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
@@ -24,9 +25,7 @@ type Config struct {
 
 // NewServer creates new server using config
 func NewServer(conf Config) (*Server, error) {
-	// Create a dedicated HTTP server to set listen address
-	// gin default router is used as the handler
-	router := gin.Default()
+	router := mux.NewRouter()
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", conf.Port),
 		Handler: router,
@@ -46,8 +45,8 @@ func NewServer(conf Config) (*Server, error) {
 	}
 
 	// Setup API endpoints
-	router.GET("/articles/", s.HandleArticles)
-	router.GET("/articles/:slug", s.HandleArticle)
+	router.HandleFunc("/articles/", s.HandleArticles).Methods("GET")
+	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
 
 	return s, nil
 }
@@ -58,23 +57,42 @@ func (s *Server) Run() {
 }
 
 // HandleArticles is a handler for /articles API endpoint
-func (s *Server) HandleArticles(c *gin.Context) {
+func (s *Server) HandleArticles(w http.ResponseWriter, r *http.Request) {
 	articles, err := s.articles.List(20)
 	if err != nil {
-		c.Status(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(200, articles)
+	jsonArticles, err := json.Marshal(articles)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonArticles)
 }
 
 // HandleArticle is a handler for /article/:slug API endpoint
-func (s *Server) HandleArticle(c *gin.Context) {
-	article, err := s.articles.Get(c.Param("slug"))
+func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	slug := vars["slug"]
+	article, err := s.articles.Get(slug)
 	if err != nil {
-		c.Status(500)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if article == nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "article with slug %s not found", slug)
 		return
 	}
 
-	c.JSON(200, article)
+	jsonArticle, err := json.Marshal(article)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonArticle)
 }

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
-
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/dzeban/conduit/mock"
 )
@@ -15,12 +15,27 @@ func TestArticlesList(t *testing.T) {
 		articles: mockArticlesService,
 	}
 
-	router := gin.New()
-	router.GET("/articles/", s.HandleArticles)
+	req, err := http.NewRequest("GET", "/articles", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	assert.HTTPRedirect(t, router.ServeHTTP, "GET", "/articles", nil)
-	assert.HTTPSuccess(t, router.ServeHTTP, "GET", "/articles/", nil)
-	assert.HTTPBodyContains(t, router.ServeHTTP, "GET", "/articles/", nil, "Title 1")
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(s.HandleArticles)
+
+	handler.ServeHTTP(rr, req)
+
+	status := rr.Code
+	if status != http.StatusOK {
+		t.Errorf("invalid status code: expected %v got %v'", http.StatusOK, status)
+	}
+
+	body := rr.Body.String()
+
+	expected := "Title 1"
+	if !strings.Contains(body, expected) {
+		t.Errorf("invalid body: expected %v, got %v", expected, body)
+	}
 }
 
 func TestNotFoundArticle(t *testing.T) {
@@ -29,8 +44,18 @@ func TestNotFoundArticle(t *testing.T) {
 		articles: mockArticlesService,
 	}
 
-	router := gin.New()
-	router.GET("/articles/", s.HandleArticles)
+	req, err := http.NewRequest("GET", "/article/xxx", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	assert.HTTPError(t, router.ServeHTTP, "GET", "/articles/xxx", nil)
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(s.HandleArticle)
+
+	handler.ServeHTTP(rr, req)
+
+	status := rr.Code
+	if status != http.StatusNotFound {
+		t.Errorf("invalid status code: expected %v got %v'", http.StatusNotFound, status)
+	}
 }
