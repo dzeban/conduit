@@ -1,86 +1,64 @@
 package main
 
 import (
-	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
-	"github.com/dzeban/conduit/mock"
+	"github.com/dzeban/conduit/app"
 )
 
-////////////////////////////////////////////////////////
-// Create server with HTTPTEST.NewServer ONCE
-// Write tests for articles in a single function with a table-driven tests
-////////////////////////////////////////////////////////
+var server *Server
 
-func TestArticlesList(t *testing.T) {
-	mockArticlesService, _ := mock.New()
-	s := Server{
-		articles: mockArticlesService,
+func TestMain(m *testing.M) {
+	mockConf := Config{
+		Articles: app.ArticlesConfig{
+			Type: "mock",
+		},
 	}
 
-	req := httptest.NewRequest("GET", "/articles", nil)
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(s.HandleArticles)
-
-	handler.ServeHTTP(rr, req)
-
-	status := rr.Code
-	if status != http.StatusOK {
-		t.Errorf("invalid status code: expected %v got %v'", http.StatusOK, status)
+	var err error
+	server, err = NewServer(mockConf)
+	if err != nil {
+		panic("failed to create server")
 	}
 
-	body := rr.Body.String()
-
-	expected := "Title 1"
-	if !strings.Contains(body, expected) {
-		t.Errorf("invalid body: expected %v, got %v", expected, body)
-	}
+	os.Exit(m.Run())
 }
 
-func TestNotFoundArticle(t *testing.T) {
-	mockArticlesService, _ := mock.New()
-	s := Server{
-		articles: mockArticlesService,
+func TestArticles(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		url    string
+		status int
+		body   string
+	}{
+		{"list", "GET", "/articles/", 200, "Title 1"},
+		{"notfound", "GET", "/articles/xxx", 404, ""},
+		{"single", "GET", "/articles/slug-2", 200, "Description 2"},
 	}
 
-	req := httptest.NewRequest("GET", "/articles/xxx", nil)
+	for _, expected := range tests {
+		// Run in a subtest to distinguish tests by name
+		t.Run(expected.name, func(t *testing.T) {
+			req := httptest.NewRequest(expected.method, expected.url, nil)
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(s.HandleArticle)
+			rr := httptest.NewRecorder()
+			server.httpServer.Handler.ServeHTTP(rr, req)
 
-	handler.ServeHTTP(rr, req)
+			// Check status
+			status := rr.Code
+			if status != expected.status {
+				t.Errorf("invalid status code: expected %v got %v'", expected.status, status)
+			}
 
-	status := rr.Code
-	if status != http.StatusNotFound {
-		t.Errorf("invalid status code: expected %v got %v'", http.StatusNotFound, status)
-	}
-}
-
-func TestArticle(t *testing.T) {
-	mockArticlesService, _ := mock.New()
-	s := Server{
-		articles: mockArticlesService,
-	}
-
-	req := httptest.NewRequest("GET", "/articles/slug-1", nil)
-
-	rr := httptest.NewRecorder()
-
-	handler := http.HandlerFunc(s.HandleArticle)
-	handler.ServeHTTP(rr, req)
-
-	status := rr.Code
-	if status != http.StatusOK {
-		t.Errorf("invalid status code: expected %v got %v'", http.StatusOK, status)
-	}
-
-	body := rr.Body.String()
-
-	expected := "Description 2"
-	if !strings.Contains(body, expected) {
-		t.Errorf("invalid body: expected '%v', got '%v'", expected, body)
+			// Check body
+			body := rr.Body.String()
+			if !strings.Contains(body, expected.body) {
+				t.Errorf("invalid body: expected %v, got %v", expected.body, body)
+			}
+		})
 	}
 }
