@@ -10,16 +10,19 @@ import (
 // Initialize config
 func init() {
 	const (
-		programName = "conduit"
-		defaultPort = 8080
-		defaultDSN  = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
+		programName         = "conduit"
+		defaultServerPort   = 8080
+		defaultArticlesDSN  = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
+		defaultArticlesType = "postgres"
 	)
 
-	viper.SetDefault("Port", defaultPort)
-	viper.SetDefault("DSN", defaultDSN)
+	viper.SetDefault("Server.Port", defaultServerPort)
+	viper.SetDefault("Articles.DSN", defaultArticlesDSN)
+	viper.SetDefault("Articles.Type", defaultArticlesType)
 
-	pflag.IntP("port", "p", defaultPort, "Listen port")
-	pflag.StringP("dsn", "d", defaultDSN, "Data source name (database connection string)")
+	pflag.IntP("server.port", "p", defaultServerPort, "Listen port")
+	pflag.StringP("articles.dsn", "a", defaultArticlesDSN, "Data source name (database connection string)")
+	pflag.StringP("articles.type", "t", defaultArticlesType, "Articles service type")
 
 	config := pflag.StringP("config", "c", "", "Path to config file")
 	pflag.Parse()
@@ -49,6 +52,6 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Start listening on %d\n", config.Port)
+	log.Printf("Start listening on %d\n", config.Server.Port)
 	server.Run()
 }

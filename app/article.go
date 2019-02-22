@@ -19,3 +19,9 @@ type ArticlesService interface {
 	List(n int) ([]Article, error)
 	Get(slug string) (*Article, error)
 }
+
+// ArticleConfig describes configuration for ArticleService
+type ArticlesConfig struct {
+	Type string
+	DSN  string
+}
