@@ -10,12 +10,14 @@ import (
 	"github.com/dzeban/conduit/postgres"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Server holds app server state
 type Server struct {
 	httpServer *http.Server
 	articles   app.ArticlesService
+	users      app.UserService
 }
 
 type ServerConfig struct {
@@ -26,6 +28,7 @@ type ServerConfig struct {
 type Config struct {
 	Server   ServerConfig
 	Articles app.ArticlesConfig
+	Users    app.UsersConfig
 }
 
 // NewServer creates new server using config
@@ -38,7 +41,10 @@ func NewServer(conf Config) (*Server, error) {
 		Handler: router,
 	}
 
-	var articlesService app.ArticlesService
+	var (
+		articlesService app.ArticlesService
+		userService     app.UserService
+	)
 
 	// Create articles service depending on configuration
 	switch conf.Articles.Type {
@@ -55,14 +61,26 @@ func NewServer(conf Config) (*Server, error) {
 		return nil, errors.Errorf("unknown article type '%s'", conf.Articles.Type)
 	}
 
+	// Create articles service depending on configuration
+	switch conf.Users.Type {
+	case "mock":
+		userService = mock.NewUserService()
+
+	default:
+		return nil, errors.Errorf("unknown users type '%s'", conf.Users.Type)
+	}
+
 	s := &Server{
 		httpServer: httpServer,
 		articles:   articlesService,
+		users:      userService,
 	}
 
 	// Setup API endpoints
 	router.HandleFunc("/articles/", s.HandleArticles).Methods("GET")
 	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
+
+	router.HandleFunc("/users", s.HandleUserRegister).Methods("POST")
 
 	return s, nil
 }
@@ -111,4 +129,52 @@ func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(jsonArticle)
+}
+
+func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		User app.User `json:user`
+	}
+
+	// Decode user request from JSON body
+	decoder := json.NewDecoder(r.Body)
+	var req request
+	err := decoder.Decode(&req)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	// Generate bcrypt hash from password
+	user := req.User
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	// Replace plaintext password with bcrypt hashed
+	user.Password = string(hashedPass)
+
+	regUser, err := s.users.Register(user)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	// TODO: Generate token
+
+	// Prepare and send reply with user data, including token
+	jsonUser, err := json.Marshal(regUser)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	w.WriteHeader(201) // 201: CREATED
+	w.Write(jsonUser)
 }

@@ -20,12 +20,12 @@ func NewUserService() *UserService {
 			{
 				Name:     "user1",
 				Email:    "user1@example.com",
-				Password: "user1pass",
+				Password: "$2a$10$uKQLjGSN2jFhNZ/e0TINcuQ/pHZ3AjXwAEyz/ufT/WrugO0MxW09G", //user1pass
 			},
 			{
 				Name:     "user2",
 				Email:    "user2@example.com",
-				Password: "user2pass",
+				Password: "$2a$10$4g5cTXBImDf652dfYoY.EOqKpOpzbCRqHSDMSVuWbnFFqwH3ZripO<Paste>", // user2pass
 				Bio:      "user2 bio",
 			},
 		},
