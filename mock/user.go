@@ -62,8 +62,6 @@ func (s *UserService) Login(email, password string) (*app.User, error) {
 // Register creates new user in the service and returns it
 func (s *UserService) Register(u app.User) (*app.User, error) {
 	s.users = append(s.users, u)
-	// TODO: generate token
-
 	return &u, nil
 }
 

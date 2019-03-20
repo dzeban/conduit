@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dzeban/conduit/app"
-	"github.com/dzeban/conduit/mock"
-	"github.com/dzeban/conduit/postgres"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/mock"
+	"github.com/dzeban/conduit/postgres"
 )
 
 // Server holds app server state
 type Server struct {
+	secret     []byte
 	httpServer *http.Server
 	articles   app.ArticlesService
 	users      app.UserService
@@ -26,6 +29,7 @@ type ServerConfig struct {
 
 // Config represents app configuration
 type Config struct {
+	Secret   string
 	Server   ServerConfig
 	Articles app.ArticlesConfig
 	Users    app.UsersConfig
@@ -71,6 +75,7 @@ func NewServer(conf Config) (*Server, error) {
 	}
 
 	s := &Server{
+		secret:     []byte(conf.Secret),
 		httpServer: httpServer,
 		articles:   articlesService,
 		users:      userService,
@@ -132,13 +137,9 @@ func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
-	type request struct {
-		User app.User `json:user`
-	}
-
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
-	var req request
+	var req app.UserRequest
 	err := decoder.Decode(&req)
 	if err != nil {
 		w.WriteHeader(422)
@@ -165,10 +166,21 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Generate token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"signed": true,
+	})
+
+	tokenString, err := token.SignedString(s.secret)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	regUser.Token = tokenString
 
 	// Prepare and send reply with user data, including token
-	jsonUser, err := json.Marshal(regUser)
+	jsonUser, err := json.Marshal(app.UserRequest{User: *regUser})
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)

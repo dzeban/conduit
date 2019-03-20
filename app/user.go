@@ -11,6 +11,12 @@ type User struct {
 	Token    string `json:"token,omitempty"`
 }
 
+// UserRequest represent a json structure used
+// in user serice requests and responses.
+type UserRequest struct {
+	User User `json:"user"`
+}
+
 // UserService defines and interface to work with users
 type UserService interface {
 	Login(name, password string) (*User, error)

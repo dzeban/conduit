@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ var server *Server
 
 func TestMain(m *testing.M) {
 	mockConf := Config{
+		Secret: "mock",
 		Articles: app.ArticlesConfig{
 			Type: "mock",
 		},
@@ -69,25 +71,33 @@ func TestArticles(t *testing.T) {
 
 func TestUserRegister(t *testing.T) {
 	tests := []struct {
-		name   string
-		method string
-		url    string
-		status int
-		body   string
+		name    string
+		method  string
+		url     string
+		reqBody string
+		status  int
+		user    app.UserRequest
 	}{
 		{
 			"Register",
 			"POST",
 			"/users",
-			201,
 			`{"user":{"username":"user3","email":"user3@example.com","password":"user3pass"}}`,
+			201,
+			app.UserRequest{
+				User: app.User{
+					Name:  "user3",
+					Email: "user3@example.com",
+					Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls`,
+				},
+			},
 		},
 	}
 
 	for _, expected := range tests {
 		// Run in a subtest to distinguish tests by name
 		t.Run(expected.name, func(t *testing.T) {
-			req := httptest.NewRequest(expected.method, expected.url, strings.NewReader(expected.body))
+			req := httptest.NewRequest(expected.method, expected.url, strings.NewReader(expected.reqBody))
 
 			rr := httptest.NewRecorder()
 			server.httpServer.Handler.ServeHTTP(rr, req)
@@ -95,12 +105,19 @@ func TestUserRegister(t *testing.T) {
 			// Check status
 			status := rr.Code
 			if status != expected.status {
-				t.Errorf("invalid status code: expected %v got %v'", expected.status, status)
+				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
 			}
 
-			// Check body
-			body := rr.Body.String()
-			fmt.Println(body)
+			// Check response
+			var user app.UserRequest
+			err := json.Unmarshal(rr.Body.Bytes(), &user)
+			if err != nil {
+				t.Error("failed to unmarshal json", err)
+			}
+
+			if !reflect.DeepEqual(expected.user, user) {
+				t.Errorf("users not matching: expected %v got %v", expected.user, user)
+			}
 		})
 	}
 }

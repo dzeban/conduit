@@ -2,6 +2,7 @@ module github.com/dzeban/conduit
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/jmoiron/sqlx v1.2.0
