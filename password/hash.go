@@ -120,6 +120,8 @@ func Decode(s string) ([]byte, HashParams, error) {
 		return nil, HashParams{}, errors.Wrapf(err, "failed to base64 decode password hash")
 	}
 
+	params.Len = uint32(len(hash))
+
 	return hash, params, nil
 }
 
