@@ -20,6 +20,10 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+type passwordError string
+
+func (pe passwordError) Error() string { return string(pe) }
+
 const (
 	encodingHashType = "argon2id"
 
@@ -28,6 +32,13 @@ const (
 	DefaultMemory     = 32 * 1024 // 32MiB
 	DefaultThreads    = 1
 	DefaultLen        = 64
+
+	ErrHashInvalid = passwordError("invalid hash format")
+	ErrHashType    = passwordError("invalid hash type")
+	ErrHashVersion = passwordError("invalid hash version")
+	ErrHashParams  = passwordError("invalid hash params")
+	ErrHashSalt    = passwordError("invalid hash salt")
+	ErrHash        = passwordError("invalid hash")
 )
 
 // genSalt generates random salt of n bytes size
@@ -89,8 +100,12 @@ func Decode(s string) ([]byte, HashParams, error) {
 	// $argon2id$v=<version>$m=<memory>,t=<iters>,p=<threads>$<salt>$<hash>
 	vals := strings.Split(s, "$")
 
+	if len(vals) != 6 {
+		return nil, HashParams{}, ErrHashInvalid
+	}
+
 	if vals[1] != encodingHashType {
-		return nil, HashParams{}, fmt.Errorf("invalid hash type, expected %s, got %s\n", encodingHashType, vals[1])
+		return nil, HashParams{}, ErrHashType
 	}
 
 	var version int
@@ -100,24 +115,24 @@ func Decode(s string) ([]byte, HashParams, error) {
 	}
 
 	if version != argon2.Version {
-		return nil, HashParams{}, fmt.Errorf("invalid password hash version %d", version)
+		return nil, HashParams{}, ErrHashVersion
 	}
 
 	var params HashParams
 
 	_, err = fmt.Sscanf(vals[3], "m=%d,t=%d,p=%d", &params.Memory, &params.Iterations, &params.Threads)
 	if err != nil {
-		return nil, HashParams{}, errors.Wrapf(err, "failed to parse password hash params")
+		return nil, HashParams{}, ErrHashParams
 	}
 
 	params.Salt, err = base64.RawStdEncoding.DecodeString(vals[4])
 	if err != nil {
-		return nil, HashParams{}, errors.Wrapf(err, "failed to base64 decode password hash salt")
+		return nil, HashParams{}, ErrHashSalt
 	}
 
 	hash, err := base64.RawStdEncoding.DecodeString(vals[5])
 	if err != nil {
-		return nil, HashParams{}, errors.Wrapf(err, "failed to base64 decode password hash")
+		return nil, HashParams{}, ErrHash
 	}
 
 	params.Len = uint32(len(hash))
