@@ -20,7 +20,7 @@ func generate(input string) {
 func compare(input, encodedHash string) {
 	equals, err := password.Check(input, encodedHash)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	fmt.Println(equals)
@@ -28,7 +28,7 @@ func compare(input, encodedHash string) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: %s <string> [<encoded hash>]")
+		fmt.Printf("Usage: %s <string> [<encoded hash>]\n", os.Args[0])
 		os.Exit(1)
 	}
 
