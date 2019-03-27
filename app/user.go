@@ -3,12 +3,17 @@ package app
 // User represents a user
 // User is identified by email and authenticated by JWT
 type User struct {
-	Name     string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"-"` // bcrypt
-	Bio      string `json:"bio,omitempty"`
-	Image    []byte `json:"image,omitempty"` // base64 encoded
-	Token    string `json:"token,omitempty"`
+	Name  string `json:"username"`
+	Email string `json:"email"`
+	Bio   string `json:"bio,omitempty"`
+	Image []byte `json:"image,omitempty"` // base64 encoded
+	Token string `json:"token,omitempty"`
+
+	// Password is stored as a valie derived from Argon2id
+	// with a unique per-password generated salt
+	// These fields are not exported.
+	passwordHash string
+	salt         string
 }
 
 // UserRequest represent a json structure used
