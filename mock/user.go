@@ -1,99 +1,119 @@
 package mock
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/password"
 )
+
+type mockUser struct {
+	user app.User
+	hash string
+}
 
 // UserService implements mock user service that serve users from memory
 type UserService struct {
-	users []app.User
+	users []mockUser
 }
 
 // NewUserService returns new mock user service
 func NewUserService() *UserService {
 	return &UserService{
-		users: []app.User{
+		users: []mockUser{
 			{
-				Name:     "user1",
-				Email:    "user1@example.com",
-				Password: "$2a$10$uKQLjGSN2jFhNZ/e0TINcuQ/pHZ3AjXwAEyz/ufT/WrugO0MxW09G", //user1pass
+				user: app.User{
+					Name:  "user1",
+					Email: "user1@example.com",
+				},
+				//user1pass
+				hash: "$argon2id$v=19$m=32768,t=5,p=1$1Eg31Vt/wwNwSvL4fIl2AA$DH1fejssBGLRpUBtMFwmaf7x7DCOJtcDsVWYvulkkZxnqKWWJCyUQgv5RZTJSSn7CzILo8cgGCFxAM8pnShZyw",
 			},
 			{
-				Name:     "user2",
-				Email:    "user2@example.com",
-				Password: "$2a$10$4g5cTXBImDf652dfYoY.EOqKpOpzbCRqHSDMSVuWbnFFqwH3ZripO<Paste>", // user2pass
-				Bio:      "user2 bio",
+				user: app.User{
+					Name:  "user2",
+					Email: "user2@example.com",
+					Bio:   "user2 bio",
+				},
+				// user2pass
+				hash: "$argon2id$v=19$m=32768,t=5,p=1$jsekOp1Q4F7l00w7rORgfw$mGPg4IdawxwABBdvKESFOEYr9ZZbFA92Q97KxJGR4PSFfRGMyGcsD7lTq+/LKfxkclTxWpVr7RLbrc17uZyYZw",
 			},
 		},
 	}
 }
 
-// Get returns user by email
-func (s *UserService) Get(email string) (*app.User, error) {
-	for _, u := range s.users {
-		if u.Email == email {
-			return &u, nil
-		}
-	}
+// // Get returns user by email
+// func (s *UserService) Get(email string) (*app.User, error) {
+// 	for _, u := range s.users {
+// 		if u.Email == email {
+// 			return &u, nil
+// 		}
+// 	}
 
-	return nil, fmt.Errorf("no user with email %s", email)
-}
+// 	return nil, fmt.Errorf("no user with email %s", email)
+// }
 
-// Login checks email and password and returns the user object
-func (s *UserService) Login(email, password string) (*app.User, error) {
-	u, err := s.Get(email)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to login user")
-	}
+// // Login checks email and password and returns the user object
+// func (s *UserService) Login(email, password string) (*app.User, error) {
+// 	u, err := s.Get(email)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "failed to login user")
+// 	}
 
-	if u.Password != password {
-		return nil, errors.New("invalid password")
-	}
+// 	if u.Password != password {
+// 		return nil, errors.New("invalid password")
+// 	}
 
-	// TODO: generate token
+// 	// TODO: generate token
 
-	return u, nil
-}
+// 	return u, nil
+// }
 
 // Register creates new user in the service and returns it
-func (s *UserService) Register(u app.User) (*app.User, error) {
-	s.users = append(s.users, u)
-	return &u, nil
+func (s *UserService) Register(user app.User, plaintextPassword string) error {
+	hash, err := password.HashAndEncode(plaintextPassword)
+	if err != nil {
+		return errors.Wrap(err, "failed to create password hash")
+	}
+
+	mu := mockUser{
+		user: user,
+		hash: hash,
+	}
+
+	s.users = append(s.users, mu)
+	return nil
 }
 
 // Update overwrite user found by
-func (s *UserService) Update(email string, newData app.User) (*app.User, error) {
-	u, err := s.Get(email)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update user")
-	}
+// func (s *UserService) Update(email string, newData app.User) (*app.User, error) {
+// 	u, err := s.Get(email)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "failed to update user")
+// 	}
 
-	// Update with non-empty fields
-	if newData.Name != "" {
-		u.Name = newData.Name
-	}
+// 	// Update with non-empty fields
+// 	if newData.Name != "" {
+// 		u.Name = newData.Name
+// 	}
 
-	if newData.Email != "" {
-		u.Email = newData.Email
-	}
+// 	if newData.Email != "" {
+// 		u.Email = newData.Email
+// 	}
 
-	if newData.Password != "" {
-		u.Password = newData.Password
-	}
+// 	if newData.Password != "" {
+// 		u.Password = newData.Password
+// 	}
 
-	if newData.Bio != "" {
-		u.Bio = newData.Bio
-	}
+// 	if newData.Bio != "" {
+// 		u.Bio = newData.Bio
+// 	}
 
-	if newData.Image != nil {
-		u.Image = newData.Image
-	}
+// 	if newData.Image != nil {
+// 		u.Image = newData.Image
+// 	}
 
-	// TODO: regenerate token
+// 	// TODO: regenerate token
 
-	return u, nil
-}
+// 	return u, nil
+// }

@@ -8,7 +8,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/mock"
@@ -147,25 +146,16 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate bcrypt hash from password
 	user := req.User
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+
+	err = s.users.Register(user, user.Password)
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
 		return
 	}
 
-	// Replace plaintext password with bcrypt hashed
-	user.Password = string(hashedPass)
-
-	regUser, err := s.users.Register(user)
-	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
-		return
-	}
-
+	// Generate JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"signed": true,
 	})
@@ -177,10 +167,10 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	regUser.Token = tokenString
+	user.Token = tokenString
 
 	// Prepare and send reply with user data, including token
-	jsonUser, err := json.Marshal(app.UserRequest{User: *regUser})
+	jsonUser, err := json.Marshal(app.UserRequest{User: user})
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
