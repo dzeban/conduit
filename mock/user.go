@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
@@ -42,16 +44,16 @@ func NewUserService() *UserService {
 	}
 }
 
-// // Get returns user by email
-// func (s *UserService) Get(email string) (*app.User, error) {
-// 	for _, u := range s.users {
-// 		if u.Email == email {
-// 			return &u, nil
-// 		}
-// 	}
+// Get returns user by email
+func (s *UserService) Get(email string) (*app.User, error) {
+	for _, u := range s.users {
+		if u.user.Email == email {
+			return &u.user, nil
+		}
+	}
 
-// 	return nil, fmt.Errorf("no user with email %s", email)
-// }
+	return nil, fmt.Errorf("no user with email %s", email)
+}
 
 // // Login checks email and password and returns the user object
 // func (s *UserService) Login(email, password string) (*app.User, error) {
@@ -71,6 +73,11 @@ func NewUserService() *UserService {
 
 // Register creates new user in the service and returns it
 func (s *UserService) Register(user app.User, plaintextPassword string) error {
+	u, _ := s.Get(user.Email)
+	if u != nil {
+		return fmt.Errorf("user exists")
+	}
+
 	hash, err := password.HashAndEncode(plaintextPassword)
 	if err != nil {
 		return errors.Wrap(err, "failed to create password hash")

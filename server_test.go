@@ -71,12 +71,12 @@ func TestArticles(t *testing.T) {
 
 func TestUserRegister(t *testing.T) {
 	tests := []struct {
-		name    string
-		method  string
-		url     string
-		reqBody string
-		status  int
-		user    app.UserRequest
+		name     string
+		method   string
+		url      string
+		reqBody  string
+		status   int
+		response interface{}
 	}{
 		{
 			"Register",
@@ -91,6 +91,38 @@ func TestUserRegister(t *testing.T) {
 					Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls`,
 				},
 			},
+		},
+		{
+			"RegisterExisting",
+			"POST",
+			"/users",
+			`{"user":{"username":"user3","email":"user3@example.com","password":"user3pass"}}`,
+			422,
+			nil,
+		},
+		{
+			"InvalidNoEmail",
+			"POST",
+			"/users",
+			`{"user":{"username":"noemailuser","password":"noemailuserpass"}}`,
+			422,
+			nil,
+		},
+		{
+			"InvalidNoUsername",
+			"POST",
+			"/users",
+			`{"user":{"email":"nousername@example.com","password":"nousernamepass"}}`,
+			422,
+			nil,
+		},
+		{
+			"InvalidNoPassword",
+			"POST",
+			"/users",
+			`{"user":{"email":"nopassworduser@example.com","username":"nopassworduser"}}`,
+			422,
+			nil,
 		},
 	}
 
@@ -108,16 +140,28 @@ func TestUserRegister(t *testing.T) {
 				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
 			}
 
-			// Check response
-			var user app.UserRequest
-			err := json.Unmarshal(rr.Body.Bytes(), &user)
-			if err != nil {
-				t.Error("failed to unmarshal json", err)
-			}
+			// fmt.Println(rr.Body.String())
 
-			if !reflect.DeepEqual(expected.user, user) {
-				t.Errorf("users not matching: expected %v got %v", expected.user, user)
+			// Check non-error response
+			if expected.status >= 200 && expected.status < 400 {
+				var user app.UserRequest
+				err := json.Unmarshal(rr.Body.Bytes(), &user)
+				if err != nil {
+					t.Error("failed to unmarshal json", err)
+				}
+
+				if !reflect.DeepEqual(expected.response, user) {
+					t.Errorf("users not matching: expected %v got %v", expected.response, user)
+				}
 			}
 		})
 	}
+}
+
+func TestUserRegisterToken(t *testing.T) {
+	t.Fatal("TODO: Validate returned token")
+}
+
+func TestUserRegisterNoPassword(t *testing.T) {
+	t.Fatal("TODO: Validate no password is returned")
 }

@@ -148,6 +148,13 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	user := req.User
 
+	err = user.ValidateForRegister()
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
 	err = s.users.Register(user, user.Password)
 	if err != nil {
 		w.WriteHeader(422)
