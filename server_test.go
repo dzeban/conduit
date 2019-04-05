@@ -192,5 +192,19 @@ func TestUserRegisterToken(t *testing.T) {
 }
 
 func TestUserRegisterNoPassword(t *testing.T) {
-	t.Fatal("TODO: Validate no password is returned")
+	userRegisterRequest := `{"user": {"username":"boss","email":"boss@example.com","password":"bossypassword"}}`
+
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(userRegisterRequest))
+	rr := httptest.NewRecorder()
+	server.httpServer.Handler.ServeHTTP(rr, req)
+
+	status := rr.Code
+	if status != http.StatusCreated {
+		t.Errorf("invalid status code: expected %v got %v", http.StatusCreated, status)
+	}
+
+	resp := rr.Body.String()
+	if strings.Contains(resp, "bossypassword") {
+		t.Errorf("plaintext password found in response %#v", rr.Body.String())
+	}
 }
