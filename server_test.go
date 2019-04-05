@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
@@ -159,7 +160,35 @@ func TestUserRegister(t *testing.T) {
 }
 
 func TestUserRegisterToken(t *testing.T) {
-	t.Fatal("TODO: Validate returned token")
+	userRegisterRequest := `{"user": {"username":"aaa","email":"a@example.com","password":"123"}}`
+
+	req := httptest.NewRequest("POST", "/users", strings.NewReader(userRegisterRequest))
+	rr := httptest.NewRecorder()
+	server.httpServer.Handler.ServeHTTP(rr, req)
+
+	status := rr.Code
+	if status != http.StatusCreated {
+		t.Errorf("invalid status code: expected %v got %v", http.StatusCreated, status)
+	}
+
+	type RespToken struct {
+		User struct {
+			Token string `json:"token"`
+		} `json:"user"`
+	}
+	var respToken RespToken
+
+	resp := rr.Body.Bytes()
+	err := json.Unmarshal(resp, &respToken)
+	if err != nil {
+		t.Error("failed to unmarshal JSON response", err)
+	}
+
+	expectedJWT := `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls`
+	if respToken.User.Token != expectedJWT {
+		t.Errorf("jwt not expected: expected %v got %v", expectedJWT, respToken.User.Token)
+		t.Errorf("req was %v, resp was %v", userRegisterRequest, rr.Body.String())
+	}
 }
 
 func TestUserRegisterNoPassword(t *testing.T) {
