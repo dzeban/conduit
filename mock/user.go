@@ -72,24 +72,24 @@ func (s *UserService) Get(email string) (*app.User, error) {
 // }
 
 // Register creates new user in the service and returns it
-func (s *UserService) Register(user app.User) error {
-	u, _ := s.Get(user.Email)
+func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
+	u, _ := s.Get(req.User.Email)
 	if u != nil {
-		return fmt.Errorf("user exists")
+		return nil, fmt.Errorf("user exists")
 	}
 
-	hash, err := password.HashAndEncode(user.Password)
+	hash, err := password.HashAndEncode(req.User.Password)
 	if err != nil {
-		return errors.Wrap(err, "failed to create password hash")
+		return nil, errors.Wrap(err, "failed to create password hash")
 	}
 
 	mu := mockUser{
-		user: user,
+		user: req.User,
 		hash: hash,
 	}
 
 	s.users = append(s.users, mu)
-	return nil
+	return &req.User, nil
 }
 
 // Update overwrite user found by

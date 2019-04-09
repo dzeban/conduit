@@ -7,8 +7,8 @@ import (
 
 // UserService defines and interface to work with users
 type UserService interface {
-	// Login(name, password string) (*User, error)
-	Register(u User) error
+	// Login(u UserRequest) (*User, error)
+	Register(ur UserRequest) (*User, error)
 	Get(email string) (*User, error)
 	// Update(email string, newData User) (*User, error)
 }

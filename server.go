@@ -146,16 +146,14 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := req.User
-
-	err = user.ValidateForRegister()
+	err = req.User.ValidateForRegister()
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
 		return
 	}
 
-	err = s.users.Register(user)
+	user, err := s.users.Register(req)
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
@@ -177,7 +175,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	user.Token = tokenString
 
 	// Prepare and send reply with user data, including token
-	jsonUser, err := json.Marshal(app.UserRequest{User: user})
+	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
