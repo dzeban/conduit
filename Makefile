@@ -1,7 +1,10 @@
 .PHONY: up down stop migrate
 
-run: build up
+run: test build up
 	./conduit
+
+test:
+	go test ./...
 
 build: *.go
 	go build
