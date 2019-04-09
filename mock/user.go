@@ -72,13 +72,13 @@ func (s *UserService) Get(email string) (*app.User, error) {
 // }
 
 // Register creates new user in the service and returns it
-func (s *UserService) Register(user app.User, plaintextPassword string) error {
+func (s *UserService) Register(user app.User) error {
 	u, _ := s.Get(user.Email)
 	if u != nil {
 		return fmt.Errorf("user exists")
 	}
 
-	hash, err := password.HashAndEncode(plaintextPassword)
+	hash, err := password.HashAndEncode(user.Password)
 	if err != nil {
 		return errors.Wrap(err, "failed to create password hash")
 	}

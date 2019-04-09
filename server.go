@@ -155,7 +155,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.users.Register(user, user.Password)
+	err = s.users.Register(user)
 	if err != nil {
 		w.WriteHeader(422)
 		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
