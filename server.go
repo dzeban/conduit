@@ -85,6 +85,7 @@ func NewServer(conf Config) (*Server, error) {
 	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
 
 	router.HandleFunc("/users", s.HandleUserRegister).Methods("POST")
+	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
 
 	return s, nil
 }
@@ -184,5 +185,56 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(201) // 201: CREATED
+	w.Write(jsonUser)
+}
+
+func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+	// Decode user request from JSON body
+	decoder := json.NewDecoder(r.Body)
+	var req app.UserRequest
+	err := decoder.Decode(&req)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	err = req.User.ValidateForLogin()
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	user, err := s.users.Login(req)
+	if err != nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	// Generate JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":    user.Email,
+		"signed": true,
+	})
+
+	tokenString, err := token.SignedString(s.secret)
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	user.Token = tokenString
+
+	// Prepare and send reply with user data, including token
+	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
+	if err != nil {
+		w.WriteHeader(422)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	w.WriteHeader(200)
 	w.Write(jsonUser)
 }

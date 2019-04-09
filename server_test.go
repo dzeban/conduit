@@ -208,3 +208,82 @@ func TestUserRegisterNoPassword(t *testing.T) {
 		t.Errorf("plaintext password found in response %#v", rr.Body.String())
 	}
 }
+
+func TestUserLogin(t *testing.T) {
+	tests := []struct {
+		name     string
+		method   string
+		url      string
+		reqBody  string
+		status   int
+		response interface{}
+	}{
+		{
+			"Login",
+			"POST",
+			"/users/login",
+			`{"user":{"email":"user1@example.com","password":"user1pass"}}`,
+			200,
+			app.UserRequest{
+				User: app.User{
+					Name:  "user1",
+					Email: "user1@example.com",
+					Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InVzZXIxQGV4YW1wbGUuY29tIn0.hZzfk_8yUXuXPu9B4lB4sbh04L4rfxC9Rmqf22HMGX8`,
+				},
+			},
+		},
+		{
+			"LoginUnauthorized",
+			"POST",
+			"/users/login",
+			`{"user":{"email":"nosuchuser@example.com","password":"nosuchuserpassword"}}`,
+			401,
+			nil,
+		},
+		{
+			"InvalidNoEmail",
+			"POST",
+			"/users/login",
+			`{"user":{"password":"noemailuserpass"}}`,
+			422,
+			nil,
+		},
+		{
+			"InvalidNoPassword",
+			"POST",
+			"/users",
+			`{"user":{"email":"nopassworduser@example.com"}}`,
+			422,
+			nil,
+		},
+	}
+
+	for _, expected := range tests {
+		// Run in a subtest to distinguish tests by name
+		t.Run(expected.name, func(t *testing.T) {
+			req := httptest.NewRequest(expected.method, expected.url, strings.NewReader(expected.reqBody))
+
+			rr := httptest.NewRecorder()
+			server.httpServer.Handler.ServeHTTP(rr, req)
+
+			// Check status
+			status := rr.Code
+			if status != expected.status {
+				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
+			}
+
+			// Check non-error response
+			if expected.status >= 200 && expected.status < 400 {
+				var user app.UserRequest
+				err := json.Unmarshal(rr.Body.Bytes(), &user)
+				if err != nil {
+					t.Error("failed to unmarshal json", err)
+				}
+
+				if !reflect.DeepEqual(expected.response, user) {
+					t.Errorf("users not matching: expected %v got %v", expected.response, user)
+				}
+			}
+		})
+	}
+}

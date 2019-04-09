@@ -7,7 +7,7 @@ import (
 
 // UserService defines and interface to work with users
 type UserService interface {
-	// Login(u UserRequest) (*User, error)
+	Login(u UserRequest) (*User, error)
 	Register(ur UserRequest) (*User, error)
 	Get(email string) (*User, error)
 	// Update(email string, newData User) (*User, error)
@@ -77,6 +77,19 @@ func (u User) ValidateForRegister() error {
 		return errors.New("username is required")
 	}
 
+	if u.Email == "" {
+		return errors.New("email is required")
+	}
+
+	if u.Password == "" {
+		return errors.New("password is required")
+	}
+
+	return nil
+}
+
+// ValidateForLogin validates user object that is used in Login handler
+func (u User) ValidateForLogin() error {
 	if u.Email == "" {
 		return errors.New("email is required")
 	}

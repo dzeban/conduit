@@ -46,21 +46,24 @@ func (s *UserService) Get(email string) (*app.User, error) {
 	return nil, fmt.Errorf("no user with email %s", email)
 }
 
-// // Login checks email and password and returns the user object
-// func (s *UserService) Login(email, password string) (*app.User, error) {
-// 	u, err := s.Get(email)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "failed to login user")
-// 	}
+// Login checks email and password and returns the user object
+func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
+	u, err := s.Get(req.User.Email)
+	if err != nil {
+		return nil, errors.Wrap(err, "user not found")
+	}
 
-// 	if u.Password != password {
-// 		return nil, errors.New("invalid password")
-// 	}
+	ok, err := password.Check(req.User.Password, u.Password)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check password during login")
+	}
 
-// 	// TODO: generate token
+	if !ok {
+		return nil, fmt.Errorf("password mismatch")
+	}
 
-// 	return u, nil
-// }
+	return u, nil
+}
 
 // Register creates new user in the service and returns it
 func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
