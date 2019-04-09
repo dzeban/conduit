@@ -9,36 +9,27 @@ import (
 	"github.com/dzeban/conduit/password"
 )
 
-type mockUser struct {
-	user app.User
-	hash string
-}
-
 // UserService implements mock user service that serve users from memory
 type UserService struct {
-	users []mockUser
+	users []app.User
 }
 
 // NewUserService returns new mock user service
 func NewUserService() *UserService {
 	return &UserService{
-		users: []mockUser{
+		users: []app.User{
 			{
-				user: app.User{
-					Name:  "user1",
-					Email: "user1@example.com",
-				},
+				Name:  "user1",
+				Email: "user1@example.com",
 				//user1pass
-				hash: "$argon2id$v=19$m=32768,t=5,p=1$1Eg31Vt/wwNwSvL4fIl2AA$DH1fejssBGLRpUBtMFwmaf7x7DCOJtcDsVWYvulkkZxnqKWWJCyUQgv5RZTJSSn7CzILo8cgGCFxAM8pnShZyw",
+				Password: "$argon2id$v=19$m=32768,t=5,p=1$1Eg31Vt/wwNwSvL4fIl2AA$DH1fejssBGLRpUBtMFwmaf7x7DCOJtcDsVWYvulkkZxnqKWWJCyUQgv5RZTJSSn7CzILo8cgGCFxAM8pnShZyw",
 			},
 			{
-				user: app.User{
-					Name:  "user2",
-					Email: "user2@example.com",
-					Bio:   "user2 bio",
-				},
+				Name:  "user2",
+				Email: "user2@example.com",
+				Bio:   "user2 bio",
 				// user2pass
-				hash: "$argon2id$v=19$m=32768,t=5,p=1$jsekOp1Q4F7l00w7rORgfw$mGPg4IdawxwABBdvKESFOEYr9ZZbFA92Q97KxJGR4PSFfRGMyGcsD7lTq+/LKfxkclTxWpVr7RLbrc17uZyYZw",
+				Password: "$argon2id$v=19$m=32768,t=5,p=1$jsekOp1Q4F7l00w7rORgfw$mGPg4IdawxwABBdvKESFOEYr9ZZbFA92Q97KxJGR4PSFfRGMyGcsD7lTq+/LKfxkclTxWpVr7RLbrc17uZyYZw",
 			},
 		},
 	}
@@ -47,8 +38,8 @@ func NewUserService() *UserService {
 // Get returns user by email
 func (s *UserService) Get(email string) (*app.User, error) {
 	for _, u := range s.users {
-		if u.user.Email == email {
-			return &u.user, nil
+		if u.Email == email {
+			return &u, nil
 		}
 	}
 
@@ -83,13 +74,11 @@ func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
 		return nil, errors.Wrap(err, "failed to create password hash")
 	}
 
-	mu := mockUser{
-		user: req.User,
-		hash: hash,
-	}
+	newUser := req.User
+	newUser.Password = hash
 
-	s.users = append(s.users, mu)
-	return &req.User, nil
+	s.users = append(s.users, newUser)
+	return &newUser, nil
 }
 
 // Update overwrite user found by
