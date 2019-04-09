@@ -162,6 +162,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Generate JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":    user.Email,
 		"signed": true,
 	})
 

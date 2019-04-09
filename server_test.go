@@ -89,7 +89,7 @@ func TestUserRegister(t *testing.T) {
 				User: app.User{
 					Name:  "user3",
 					Email: "user3@example.com",
-					Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls`,
+					Token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InVzZXIzQGV4YW1wbGUuY29tIn0.e3e-9S3ejZpyUgLcfDWuTIGUR79P5I6-xk_cu0RXks0`,
 				},
 			},
 		},
@@ -184,7 +184,7 @@ func TestUserRegisterToken(t *testing.T) {
 		t.Error("failed to unmarshal JSON response", err)
 	}
 
-	expectedJWT := `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls`
+	expectedJWT := `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6ImFAZXhhbXBsZS5jb20ifQ.fgpEq8igZEIW7tePDA6CAFk7OY8zt1q54-Sxx-kZNBg`
 	if respToken.User.Token != expectedJWT {
 		t.Errorf("jwt not expected: expected %v got %v", expectedJWT, respToken.User.Token)
 		t.Errorf("req was %v, resp was %v", userRegisterRequest, rr.Body.String())
