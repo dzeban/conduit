@@ -1,2 +1,4 @@
-insert into articles (title, slug, description, body, created, updated) values ('How to train your dragon', 'how-to-train-your-dragon', 'Ever wonder how?', 'It takes a Jacobian', current_timestamp, current_timestamp);
-insert into articles (title, slug, description, body, created, updated) values ('My article 2', 'my-article-2', 'So toothless', 'Some really awesome content', current_timestamp, current_timestamp);
+INSERT INTO articles (title, slug, description, BODY, created, updated)
+VALUES ('How to train your dragon', 'how-to-train-your-dragon', 'Ever wonder how?', 'It takes a Jacobian', now(), now());
+INSERT INTO articles (title, slug, description, BODY, created, updated)
+VALUES ('My article 2', 'my-article-2', 'So toothless', 'Some really awesome content', now(), now());
