@@ -20,7 +20,7 @@ type ArticlesService interface {
 	Get(slug string) (*Article, error)
 }
 
-// ArticleConfig describes configuration for ArticleService
+// ArticlesConfig describes configuration for ArticleService
 type ArticlesConfig struct {
 	Type string
 	DSN  string
