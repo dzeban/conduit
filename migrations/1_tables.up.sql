@@ -8,3 +8,11 @@ CREATE TABLE IF NOT EXISTS articles (
     updated timestamptz NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id serial PRIMARY KEY,
+    name text NOT NULL,
+    email text UNIQUE NOT NULL,
+    bio text,
+    image text, -- base64
+    password text NOT NULL
+);
