@@ -14,17 +14,20 @@ func init() {
 		defaultServerPort   = 8080
 		defaultArticlesDSN  = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
 		defaultArticlesType = "postgres"
-		defaultUsersType    = "mock"
+		defaultUsersDSN     = "postgres://postgres:postgres@localhost/conduit?sslmode=disable"
+		defaultUsersType    = "postgres"
 	)
 
 	viper.SetDefault("Server.Port", defaultServerPort)
 	viper.SetDefault("Articles.DSN", defaultArticlesDSN)
 	viper.SetDefault("Articles.Type", defaultArticlesType)
+	viper.SetDefault("Users.DSN", defaultUsersDSN)
+	viper.SetDefault("Users.Type", defaultUsersType)
 
 	pflag.IntP("server.port", "p", defaultServerPort, "Listen port")
 	pflag.StringP("articles.dsn", "a", defaultArticlesDSN, "Data source name (database connection string)")
 	pflag.StringP("articles.type", "t", defaultArticlesType, "Articles service type")
-
+	pflag.StringP("users.dsn", "d", defaultUsersDSN, "Data source name (database connection string)")
 	pflag.StringP("users.type", "u", defaultUsersType, "Users service type")
 
 	config := pflag.StringP("config", "c", "", "Path to config file")

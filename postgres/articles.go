@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ArticleService implements app.ArticleService interface
+// ArticlesService implements app.ArticleService interface
 // It serves articles from Postgres
 type ArticlesService struct {
 	db *sqlx.DB
@@ -17,9 +17,9 @@ type ArticlesService struct {
 
 // New creates new Articles service backed by Postgres
 func New(DSN string) (*ArticlesService, error) {
-	db, err := sqlx.Open("postgres", DSN)
+	db, err := sqlx.Connect("postgres", DSN)
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot connect to postgres")
+		return nil, errors.Wrap(err, "failed to connect to articles db")
 	}
 
 	return &ArticlesService{db: db}, nil

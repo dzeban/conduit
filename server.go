@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
@@ -66,6 +67,12 @@ func NewServer(conf Config) (*Server, error) {
 
 	// Create articles service depending on configuration
 	switch conf.Users.Type {
+	case "postgres":
+		userService, err = postgres.NewUserService(conf.Users.DSN)
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot create users service")
+		}
+
 	case "mock":
 		userService = mock.NewUserService()
 
@@ -209,6 +216,7 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	user, err := s.users.Login(req)
 	if err != nil {
 		w.WriteHeader(401)
+		log.Println(err)
 		return
 	}
 

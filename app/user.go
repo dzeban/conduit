@@ -7,7 +7,7 @@ import (
 
 // UserService defines and interface to work with users
 type UserService interface {
-	Login(u UserRequest) (*User, error)
+	Login(ur UserRequest) (*User, error)
 	Register(ur UserRequest) (*User, error)
 	Get(email string) (*User, error)
 	// Update(email string, newData User) (*User, error)
@@ -16,18 +16,19 @@ type UserService interface {
 // UsersConfig describes configuration for UserService
 type UsersConfig struct {
 	Type string
+	DSN  string
 }
 
 // User represents a user
 // User is identified by email and authenticated by JWT
 // Password is hidden by custom marshaller
 type User struct {
-	Name     string `json:"username"`
-	Email    string `json:"email"`
-	Bio      string `json:"bio,omitempty"`
-	Image    []byte `json:"image,omitempty"` // base64 encoded
+	Name     string `json:"username" db:"name"`
+	Email    string `json:"email" db:"email"`
+	Bio      string `json:"bio,omitempty" db:"bio"`
+	Image    string `json:"image,omitempty" db:"image"` // base64 encoded
 	Token    string `json:"token,omitempty"`
-	Password string `json:"password,omitempty"`
+	Password string `json:"password,omitempty" db:"password"`
 }
 
 // MarshalJSON custom serializer hides password field
@@ -36,7 +37,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 		Name  string `json:"username"`
 		Email string `json:"email"`
 		Bio   string `json:"bio,omitempty"`
-		Image []byte `json:"image,omitempty"`
+		Image string `json:"image,omitempty"`
 		Token string `json:"token,omitempty"`
 	}{
 		Name:  u.Name,
