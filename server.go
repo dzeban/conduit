@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -93,6 +94,7 @@ func NewServer(conf Config) (*Server, error) {
 
 	router.HandleFunc("/users", s.HandleUserRegister).Methods("POST")
 	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
+	router.HandleFunc("/users", s.HandleUserGet).Methods("GET")
 
 	return s, nil
 }
@@ -245,4 +247,88 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(200)
 	w.Write(jsonUser)
+}
+
+func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
+	authHeader, ok := r.Header["Authorization"]
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := parseJWTClaimsFromHeader(authHeader[0], s.secret)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	if claims["signed"] != true {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "token does not have signed claim")
+		return
+	}
+
+	if claims["sub"] == "" {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "no sub claim")
+		return
+	}
+
+	email, ok := claims["sub"].(string)
+	if !ok {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "invalid sub claim")
+		return
+	}
+
+	user, err := s.users.Get(email)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonUser)
+}
+
+// parseJWTClaimsFromHeader takes JWT from Authorization header, parses and
+// validates it and returns claims. JWT is expected in "Token <token>" format.
+func parseJWTClaimsFromHeader(header string, secret []byte) (map[string]interface{}, error) {
+	tokenVals := strings.Split(header, " ")
+
+	if len(tokenVals) != 2 {
+		return nil, errors.New("invalid auth header format, expected 2 elements")
+	}
+
+	if tokenVals[0] != "Token" {
+		return nil, fmt.Errorf("invalid auth header format, expected Token <token>, got %#v", header)
+	}
+
+	token, err := jwt.Parse(tokenVals[1], func(token *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "jwt parsing error")
+	}
+
+	if !token.Valid {
+		return nil, errors.New("jwt is invalid")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("failed to cast claims to jwt.MapClaims")
+	}
+
+	return claims, nil
 }
