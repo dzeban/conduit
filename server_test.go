@@ -287,3 +287,53 @@ func TestUserLogin(t *testing.T) {
 		})
 	}
 }
+
+func TestJWTParse(t *testing.T) {
+	tests := []struct {
+		name   string
+		header string
+		secret []byte
+		isErr  bool
+	}{
+		{
+			"Successful",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.8dbE6VKua4RQsqJZXTqisRXCBf4K5dTgBgPYHwn1ikc",
+			[]byte(""),
+			false,
+		},
+		{
+			"InvalidFormat",
+			"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.8dbE6VKua4RQsqJZXTqisRXCBf4K5dTgBgPYHwn1ikc",
+			[]byte(""),
+			true,
+		},
+		{
+			"InvalidFormatName",
+			"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.8dbE6VKua4RQsqJZXTqisRXCBf4K5dTgBgPYHwn1ikc",
+			[]byte(""),
+			true,
+		},
+		{
+			"InvalidJWT",
+			"Token ZZZZZZZZZZZZZZZZNiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.8dbE6VKua4RQsqJZXTqisRXCBf4K5dTgBgPYHwn1ikc",
+			[]byte(""),
+			true,
+		},
+		{
+			"InvalidSignature",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.8dbE6VKua4RQsqJZXTqisRXCBf4K5dTgBgPYHwn1ik1",
+			[]byte(""),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := parseJWTClaimsFromHeader(test.header, test.secret)
+
+			if (err != nil) != test.isErr {
+				t.Errorf("error is expected to be %v, got %v, header is '%v', secret is '%s'\n", err != nil, test.isErr, test.header, test.secret)
+			}
+		})
+	}
+}
