@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -94,7 +95,7 @@ func NewServer(conf Config) (*Server, error) {
 
 	router.HandleFunc("/users", s.HandleUserRegister).Methods("POST")
 	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
-	router.HandleFunc("/users", s.HandleUserGet).Methods("GET")
+	router.HandleFunc("/users", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
 
 	return s, nil
 }
@@ -249,36 +250,18 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonUser)
 }
 
+// HandleUserGet gets the currently logged-in user. Requires authentication.
 func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
-	authHeader, ok := r.Header["Authorization"]
-	if !ok {
+	val := r.Context().Value("email")
+	if val == nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	claims, err := parseJWTClaimsFromHeader(authHeader[0], s.secret)
-	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
-		return
-	}
-
-	if claims["signed"] != true {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "token does not have signed claim")
-		return
-	}
-
-	if claims["sub"] == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "no sub claim")
-		return
-	}
-
-	email, ok := claims["sub"].(string)
+	email, ok := val.(string)
 	if !ok {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "invalid sub claim")
+		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "invalid auth email")
 		return
 	}
 
@@ -298,6 +281,43 @@ func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonUser)
+}
+
+// jwtAuthHandler is a middleware that wraps next handler func with JWT token
+// parsing and validation. It also stores authenticated user email into the
+// context.
+func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader, ok := r.Header["Authorization"]
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		claims, err := parseJWTClaimsFromHeader(authHeader[0], s.secret)
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+			return
+		}
+
+		if claims["signed"] != true {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "token does not have signed claim")
+			return
+		}
+
+		if claims["sub"] == "" {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "no sub claim")
+			return
+		}
+
+		// Store auth subject (email) to the context
+		authCtx := context.WithValue(r.Context(), "email", claims["sub"])
+
+		next(w, r.WithContext(authCtx))
+	}
 }
 
 // parseJWTClaimsFromHeader takes JWT from Authorization header, parses and
