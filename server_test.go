@@ -369,12 +369,6 @@ func TestJWTAuth(t *testing.T) {
 			http.StatusUnprocessableEntity,
 			"no sub claim",
 		},
-		{
-			"Successful",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InVzZXIxQGV4YW1wbGUuY29tIn0.hZzfk_8yUXuXPu9B4lB4sbh04L4rfxC9Rmqf22HMGX8",
-			http.StatusOK,
-			"",
-		},
 	}
 
 	for _, expected := range tests {
@@ -398,6 +392,60 @@ func TestJWTAuth(t *testing.T) {
 				body := rr.Body.String()
 				if !strings.Contains(body, expected.errMessage) {
 					t.Errorf("unexpected error message: expected '%v', got '%v'\n", expected.errMessage, body)
+				}
+			}
+		})
+	}
+}
+
+func TestUserGet(t *testing.T) {
+	tests := []struct {
+		name       string
+		authHeader string
+		status     int
+		body       string
+	}{
+		{
+			"Successful",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InVzZXIxQGV4YW1wbGUuY29tIn0.hZzfk_8yUXuXPu9B4lB4sbh04L4rfxC9Rmqf22HMGX8",
+			http.StatusOK,
+			"",
+		},
+		{
+			"InvalidSub",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6MTIzfQ.kjCfjIKA_buC-tNby6aeh5cklId7J1qWj0qn6rcDAP0",
+			http.StatusUnprocessableEntity,
+			"invalid auth email",
+		},
+		{
+			"NoUser",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InBpcGthQGV4YW1wbGUuY29tIn0.i--wUiS2g7XPrL83EPo5E_8S3vGh58RRl3AKAZnz8j0",
+			http.StatusUnprocessableEntity,
+			"no user",
+		},
+	}
+
+	for _, expected := range tests {
+		t.Run(expected.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/users", nil)
+			if expected.authHeader != "" {
+				req.Header["Authorization"] = []string{expected.authHeader}
+			}
+
+			rr := httptest.NewRecorder()
+
+			server.httpServer.Handler.ServeHTTP(rr, req)
+
+			// Check status
+			status := rr.Code
+			if status != expected.status {
+				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
+			}
+
+			if expected.body != "" {
+				body := rr.Body.String()
+				if !strings.Contains(body, expected.body) {
+					t.Errorf("unexpected error message: expected '%v', got '%v'\n", expected.body, body)
 				}
 			}
 		})
