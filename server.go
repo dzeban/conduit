@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -219,7 +218,6 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	user, err := s.users.Login(req)
 	if err != nil {
 		w.WriteHeader(401)
-		log.Println(err)
 		return
 	}
 
@@ -307,14 +305,15 @@ func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if claims["sub"] == "" {
+		var sub interface{}
+		if sub, ok = claims["sub"]; !ok {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "no sub claim")
 			return
 		}
 
 		// Store auth subject (email) to the context
-		authCtx := context.WithValue(r.Context(), "email", claims["sub"])
+		authCtx := context.WithValue(r.Context(), "email", sub)
 
 		next(w, r.WithContext(authCtx))
 	}
