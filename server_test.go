@@ -337,3 +337,69 @@ func TestJWTParse(t *testing.T) {
 		})
 	}
 }
+
+func TestJWTAuth(t *testing.T) {
+	tests := []struct {
+		name       string
+		authHeader string
+		status     int
+		errMessage string
+	}{
+		{
+			"NoHeader",
+			"",
+			http.StatusUnauthorized,
+			"",
+		},
+		{
+			"InvalidHeader",
+			"bebebe",
+			http.StatusUnprocessableEntity,
+			"",
+		},
+		{
+			"NoSignedClaim",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.TLTUpuQq8FH-JaUfnho9dkSB_XKTlDCxAdiLsMJ-TdA",
+			http.StatusUnprocessableEntity,
+			"token does not have signed claim",
+		},
+		{
+			"NoSubClaim",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls",
+			http.StatusUnprocessableEntity,
+			"no sub claim",
+		},
+		{
+			"Successful",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InVzZXIxQGV4YW1wbGUuY29tIn0.hZzfk_8yUXuXPu9B4lB4sbh04L4rfxC9Rmqf22HMGX8",
+			http.StatusOK,
+			"",
+		},
+	}
+
+	for _, expected := range tests {
+		t.Run(expected.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/users", nil)
+			if expected.authHeader != "" {
+				req.Header["Authorization"] = []string{expected.authHeader}
+			}
+
+			rr := httptest.NewRecorder()
+
+			server.httpServer.Handler.ServeHTTP(rr, req)
+
+			// Check status
+			status := rr.Code
+			if status != expected.status {
+				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
+			}
+
+			if expected.errMessage != "" {
+				body := rr.Body.String()
+				if !strings.Contains(body, expected.errMessage) {
+					t.Errorf("unexpected error message: expected '%v', got '%v'\n", expected.errMessage, body)
+				}
+			}
+		})
+	}
+}
