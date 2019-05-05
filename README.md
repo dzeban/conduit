@@ -23,7 +23,6 @@ This will start Postgres in container via docker-compose.
 
 # TODO
 
-- [ ] Improve coverage for HandleArticles
 - [ ] Make error values, add String(), remove hardcoded string comparison in
   tests
 - [ ] Replace hardcoded integer status codes to net/http constants
@@ -31,3 +30,7 @@ This will start Postgres in container via docker-compose.
 - [ ] Add logging middleware
 - [ ] Fix error status codes
 - [ ] Add "exp" claim to JWT, validate it
+- [ ] Use Postgres implementation in server tests
+- [ ] Reorganize packages - remove mock package, create `article`, `user`, etc.
+  packages from postgres; move `app` package content to the dedicated packages,
+  remove interfaces.
