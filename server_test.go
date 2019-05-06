@@ -84,7 +84,7 @@ func TestUserRegister(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"username":"user3","email":"user3@example.com","password":"user3pass"}}`,
-			201,
+			http.StatusCreated,
 			app.UserRequest{
 				User: app.User{
 					Name:  "user3",
@@ -106,7 +106,7 @@ func TestUserRegister(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"username":"noemailuser","password":"noemailuserpass"}}`,
-			422,
+			http.StatusBadRequest,
 			nil,
 		},
 		{
@@ -114,7 +114,7 @@ func TestUserRegister(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"email":"nousername@example.com","password":"nousernamepass"}}`,
-			422,
+			http.StatusBadRequest,
 			nil,
 		},
 		{
@@ -122,7 +122,7 @@ func TestUserRegister(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"email":"nopassworduser@example.com","username":"nopassworduser"}}`,
-			422,
+			http.StatusBadRequest,
 			nil,
 		},
 	}
@@ -223,7 +223,7 @@ func TestUserLogin(t *testing.T) {
 			"POST",
 			"/users/login",
 			`{"user":{"email":"user1@example.com","password":"user1pass"}}`,
-			200,
+			http.StatusOK,
 			app.UserRequest{
 				User: app.User{
 					Name:  "user1",
@@ -237,7 +237,7 @@ func TestUserLogin(t *testing.T) {
 			"POST",
 			"/users/login",
 			`{"user":{"email":"nosuchuser@example.com","password":"nosuchuserpassword"}}`,
-			401,
+			http.StatusUnauthorized,
 			nil,
 		},
 		{
@@ -245,7 +245,7 @@ func TestUserLogin(t *testing.T) {
 			"POST",
 			"/users/login",
 			`{"user":{"password":"noemailuserpass"}}`,
-			422,
+			http.StatusBadRequest,
 			nil,
 		},
 		{
@@ -253,7 +253,7 @@ func TestUserLogin(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"email":"nopassworduser@example.com"}}`,
-			422,
+			http.StatusBadRequest,
 			nil,
 		},
 	}
@@ -354,19 +354,19 @@ func TestJWTAuth(t *testing.T) {
 		{
 			"InvalidHeader",
 			"bebebe",
-			http.StatusUnprocessableEntity,
+			http.StatusBadRequest,
 			"",
 		},
 		{
 			"NoSignedClaim",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.TLTUpuQq8FH-JaUfnho9dkSB_XKTlDCxAdiLsMJ-TdA",
-			http.StatusUnprocessableEntity,
+			http.StatusUnauthorized,
 			"token does not have signed claim",
 		},
 		{
 			"NoSubClaim",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls",
-			http.StatusUnprocessableEntity,
+			http.StatusUnauthorized,
 			"no sub claim",
 		},
 	}
@@ -414,7 +414,7 @@ func TestUserGet(t *testing.T) {
 		{
 			"InvalidSub",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6MTIzfQ.kjCfjIKA_buC-tNby6aeh5cklId7J1qWj0qn6rcDAP0",
-			http.StatusUnprocessableEntity,
+			http.StatusUnauthorized,
 			"invalid auth email",
 		},
 		{

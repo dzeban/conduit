@@ -108,13 +108,13 @@ func (s *Server) Run() {
 func (s *Server) HandleArticles(w http.ResponseWriter, r *http.Request) {
 	articles, err := s.articles.List(20)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, ServerError(err, "failed to list articles"), http.StatusInternalServerError)
 		return
 	}
 
 	jsonArticles, err := json.Marshal(articles)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, ServerError(err, "failed to marshal json for articles list"), http.StatusInternalServerError)
 		return
 	}
 
@@ -127,18 +127,17 @@ func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
 	slug := vars["slug"]
 	article, err := s.articles.Get(slug)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, ServerError(err, "failed to get article"), http.StatusInternalServerError)
 		return
 	}
 	if article == nil {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "article with slug %s not found", slug)
+		http.Error(w, ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
 		return
 	}
 
 	jsonArticle, err := json.Marshal(article)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, ServerError(err, "failed to marshal json for article get"), http.StatusInternalServerError)
 		return
 	}
 
@@ -151,22 +150,19 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	var req app.UserRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to decode request"), http.StatusBadRequest)
 		return
 	}
 
 	err = req.User.ValidateForRegister()
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to validate request"), http.StatusBadRequest)
 		return
 	}
 
 	user, err := s.users.Register(req)
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to register user"), http.StatusInternalServerError)
 		return
 	}
 
@@ -178,8 +174,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString(s.secret)
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to create token"), http.StatusInternalServerError)
 		return
 	}
 
@@ -188,12 +183,11 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	// Prepare and send reply with user data, including token
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(201) // 201: CREATED
+	w.WriteHeader(http.StatusCreated)
 	w.Write(jsonUser)
 }
 
@@ -203,21 +197,19 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	var req app.UserRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to decode request"), http.StatusBadRequest)
 		return
 	}
 
 	err = req.User.ValidateForLogin()
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to validate request"), http.StatusBadRequest)
 		return
 	}
 
 	user, err := s.users.Login(req)
 	if err != nil {
-		w.WriteHeader(401)
+		http.Error(w, ServerError(err, "failed to login"), http.StatusUnauthorized)
 		return
 	}
 
@@ -229,8 +221,7 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString(s.secret)
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to create token"), http.StatusInternalServerError)
 		return
 	}
 
@@ -239,12 +230,10 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	// Prepare and send reply with user data, including token
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
 	if err != nil {
-		w.WriteHeader(422)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(200)
 	w.Write(jsonUser)
 }
 
@@ -252,32 +241,28 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value("email")
 	if val == nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		http.Error(w, ServerError(nil, "no email in context"), http.StatusUnauthorized)
 		return
 	}
 
 	email, ok := val.(string)
 	if !ok {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "invalid auth email")
+		http.Error(w, ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
 		return
 	}
 
 	user, err := s.users.Get(email)
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to get user"), http.StatusInternalServerError)
 		return
 	}
 
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Write(jsonUser)
 }
 
@@ -288,27 +273,24 @@ func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader, ok := r.Header["Authorization"]
 		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
+			http.Error(w, ServerError(nil, "no Authorization header"), http.StatusUnauthorized)
 			return
 		}
 
 		claims, err := parseJWTClaimsFromHeader(authHeader[0], s.secret)
 		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, err)
+			http.Error(w, ServerError(err, "failed to parse jwt"), http.StatusBadRequest)
 			return
 		}
 
 		if claims["signed"] != true {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "token does not have signed claim")
+			http.Error(w, ServerError(nil, "token does not have signed claim"), http.StatusUnauthorized)
 			return
 		}
 
 		var sub interface{}
 		if sub, ok = claims["sub"]; !ok {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			fmt.Fprintf(w, `{"error":{"body":["%s"]}}`, "no sub claim")
+			http.Error(w, ServerError(nil, "no sub claim"), http.StatusUnauthorized)
 			return
 		}
 
@@ -350,4 +332,13 @@ func parseJWTClaimsFromHeader(header string, secret []byte) (map[string]interfac
 	}
 
 	return claims, nil
+}
+
+func ServerError(err error, msg string) string {
+	// errors.Wrap doesn't handle nil errors. To avoid nil pointer in error
+	// message we create empty error here when error is nil
+	if err == nil {
+		err = errors.New("")
+	}
+	return fmt.Sprintf(`{"error":{"message":["%s"]}}`, errors.Wrap(err, msg))
 }
