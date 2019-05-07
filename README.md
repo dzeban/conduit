@@ -28,7 +28,7 @@ This will start Postgres in container via docker-compose.
 - [x] Replace hardcoded integer status codes to net/http constants
 - [x] Rewrite server configuration
 - [ ] Add logging middleware
-- [ ] Fix error status codes
+- [x] Fix error status codes
 - [ ] Add "exp" claim to JWT, validate it
 - [ ] Use Postgres implementation in server tests
 - [ ] Reorganize packages - remove mock package, create `article`, `user`, etc.
