@@ -161,7 +161,10 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := s.users.Register(req)
-	if err != nil {
+	if err == app.ErrUserExists {
+		http.Error(w, ServerError(err, "failed to register user"), http.StatusConflict)
+		return
+	} else if err != nil {
 		http.Error(w, ServerError(err, "failed to register user"), http.StatusInternalServerError)
 		return
 	}
@@ -252,7 +255,10 @@ func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := s.users.Get(email)
-	if err != nil {
+	if err == app.ErrUserNotFound {
+		http.Error(w, ServerError(err, "failed to get user"), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, ServerError(err, "failed to get user"), http.StatusInternalServerError)
 		return
 	}

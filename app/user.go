@@ -5,6 +5,11 @@ import (
 	"errors"
 )
 
+var (
+	ErrUserExists   = errors.New("user already exists")
+	ErrUserNotFound = errors.New("no such user")
+)
+
 // UserService defines and interface to work with users
 type UserService interface {
 	Login(ur UserRequest) (*User, error)

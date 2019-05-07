@@ -48,7 +48,7 @@ func (s *UserService) Get(email string) (*app.User, error) {
 	var bio, image sql.NullString
 	err := row.Scan(&name, &bio, &image, &password)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, app.ErrUserNotFound
 	} else if err != nil {
 		return nil, errors.Wrap(err, "failed to query user")
 	}
@@ -69,7 +69,7 @@ func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
 	fmt.Println(req.User.Email)
 	u, err := s.Get(req.User.Email)
 	if err != nil {
-		return nil, errors.Wrap(err, "user not found")
+		return nil, app.ErrUserNotFound
 	}
 
 	fmt.Println(req.User.Password, u.Password)
@@ -89,7 +89,7 @@ func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
 func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
 	u, _ := s.Get(req.User.Email)
 	if u != nil {
-		return nil, fmt.Errorf("user exists")
+		return nil, app.ErrUserExists
 	}
 
 	hash, err := password.HashAndEncode(req.User.Password)

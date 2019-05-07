@@ -98,7 +98,7 @@ func TestUserRegister(t *testing.T) {
 			"POST",
 			"/users",
 			`{"user":{"username":"user3","email":"user3@example.com","password":"user3pass"}}`,
-			422,
+			http.StatusConflict,
 			nil,
 		},
 		{
@@ -420,8 +420,8 @@ func TestUserGet(t *testing.T) {
 		{
 			"NoUser",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InBpcGthQGV4YW1wbGUuY29tIn0.i--wUiS2g7XPrL83EPo5E_8S3vGh58RRl3AKAZnz8j0",
-			http.StatusUnprocessableEntity,
-			"no user",
+			http.StatusNotFound,
+			"no such user",
 		},
 	}
 

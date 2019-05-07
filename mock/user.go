@@ -43,14 +43,14 @@ func (s *UserService) Get(email string) (*app.User, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no user with email %s", email)
+	return nil, app.ErrUserNotFound
 }
 
 // Login checks email and password and returns the user object
 func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
 	u, err := s.Get(req.User.Email)
 	if err != nil {
-		return nil, errors.Wrap(err, "user not found")
+		return nil, app.ErrUserNotFound
 	}
 
 	ok, err := password.Check(req.User.Password, u.Password)
@@ -69,7 +69,7 @@ func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
 func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
 	u, _ := s.Get(req.User.Email)
 	if u != nil {
-		return nil, fmt.Errorf("user exists")
+		return nil, app.ErrUserExists
 	}
 
 	hash, err := password.HashAndEncode(req.User.Password)
