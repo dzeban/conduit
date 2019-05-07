@@ -343,13 +343,13 @@ func TestJWTAuth(t *testing.T) {
 		name       string
 		authHeader string
 		status     int
-		errMessage string
+		body       string
 	}{
 		{
 			"NoHeader",
 			"",
 			http.StatusUnauthorized,
-			"",
+			ErrJWTNoAuthorizationHeader.Error(),
 		},
 		{
 			"InvalidHeader",
@@ -361,13 +361,13 @@ func TestJWTAuth(t *testing.T) {
 			"NoSignedClaim",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.TLTUpuQq8FH-JaUfnho9dkSB_XKTlDCxAdiLsMJ-TdA",
 			http.StatusUnauthorized,
-			"token does not have signed claim",
+			ErrJWTNoSignedClaim.Error(),
 		},
 		{
 			"NoSubClaim",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.LCCSzgQvBNx6xE8P2xJurQ_ykszQIDqyRDL28AeBCls",
 			http.StatusUnauthorized,
-			"no sub claim",
+			ErrJWTNoSubClaim.Error(),
 		},
 	}
 
@@ -388,10 +388,10 @@ func TestJWTAuth(t *testing.T) {
 				t.Errorf("invalid status code: expected %v got %v", expected.status, status)
 			}
 
-			if expected.errMessage != "" {
+			if expected.body != "" {
 				body := rr.Body.String()
-				if !strings.Contains(body, expected.errMessage) {
-					t.Errorf("unexpected error message: expected '%v', got '%v'\n", expected.errMessage, body)
+				if !strings.Contains(body, expected.body) {
+					t.Errorf("unexpected error message: expected '%v', got '%v'\n", expected.body, body)
 				}
 			}
 		})
@@ -421,7 +421,7 @@ func TestUserGet(t *testing.T) {
 			"NoUser",
 			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InBpcGthQGV4YW1wbGUuY29tIn0.i--wUiS2g7XPrL83EPo5E_8S3vGh58RRl3AKAZnz8j0",
 			http.StatusNotFound,
-			"no such user",
+			app.ErrUserNotFound.Error(),
 		},
 	}
 

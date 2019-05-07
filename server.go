@@ -16,6 +16,12 @@ import (
 	"github.com/dzeban/conduit/postgres"
 )
 
+var (
+	ErrJWTNoAuthorizationHeader = errors.New("no Authorization header")
+	ErrJWTNoSignedClaim         = errors.New("token does not have signed claim")
+	ErrJWTNoSubClaim            = errors.New("no sub claim")
+)
+
 // Server holds app server state
 type Server struct {
 	secret     []byte
@@ -279,7 +285,7 @@ func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader, ok := r.Header["Authorization"]
 		if !ok {
-			http.Error(w, ServerError(nil, "no Authorization header"), http.StatusUnauthorized)
+			http.Error(w, ServerError(ErrJWTNoAuthorizationHeader, ""), http.StatusUnauthorized)
 			return
 		}
 
@@ -290,13 +296,13 @@ func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if claims["signed"] != true {
-			http.Error(w, ServerError(nil, "token does not have signed claim"), http.StatusUnauthorized)
+			http.Error(w, ServerError(ErrJWTNoSignedClaim, ""), http.StatusUnauthorized)
 			return
 		}
 
 		var sub interface{}
 		if sub, ok = claims["sub"]; !ok {
-			http.Error(w, ServerError(nil, "no sub claim"), http.StatusUnauthorized)
+			http.Error(w, ServerError(ErrJWTNoSubClaim, ""), http.StatusUnauthorized)
 			return
 		}
 
