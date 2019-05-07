@@ -22,6 +22,6 @@ type ArticlesService interface {
 
 // ArticlesConfig describes configuration for ArticleService
 type ArticlesConfig struct {
-	Type string
-	DSN  string
+	Type string `default:"postgres"`
+	DSN  string `default:"postgres://postgres:postgres@localhost/conduit?sslmode=disable"`
 }

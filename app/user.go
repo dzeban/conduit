@@ -20,8 +20,8 @@ type UserService interface {
 
 // UsersConfig describes configuration for UserService
 type UsersConfig struct {
-	Type string
-	DSN  string
+	Type string `default:"postgres"`
+	DSN  string `default:"postgres://postgres:postgres@localhost/conduit?sslmode=disable"`
 }
 
 // User represents a user

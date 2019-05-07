@@ -31,7 +31,7 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	Port int
+	Port int `default:"8080"`
 }
 
 // Config represents app configuration
