@@ -1,4 +1,4 @@
-package main
+package user
 
 import (
 	"context"
@@ -8,12 +8,8 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-
 	"github.com/dzeban/conduit/app"
-	"github.com/dzeban/conduit/mock"
-	"github.com/dzeban/conduit/postgres"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -22,135 +18,12 @@ var (
 	ErrJWTNoSubClaim            = errors.New("no sub claim")
 )
 
-// Server holds app server state
-type Server struct {
-	secret     []byte
-	httpServer *http.Server
-	articles   app.ArticlesService
-	users      app.UserService
+// ServeHTTP implements http.handler interface and uses router ServeHTTP method
+func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
 }
 
-type ServerConfig struct {
-	Port int `default:"8080"`
-}
-
-// Config represents app configuration
-type Config struct {
-	Secret   string
-	Server   ServerConfig
-	Articles app.ArticlesConfig
-	Users    app.UsersConfig
-}
-
-// NewServer creates new server using config
-func NewServer(conf Config) (*Server, error) {
-	var err error
-
-	router := mux.NewRouter()
-	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", conf.Server.Port),
-		Handler: router,
-	}
-
-	var (
-		articlesService app.ArticlesService
-		userService     app.UserService
-	)
-
-	// Create articles service depending on configuration
-	switch conf.Articles.Type {
-	case "postgres":
-		articlesService, err = postgres.New(conf.Articles.DSN)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create articles service")
-		}
-
-	case "mock":
-		articlesService, _ = mock.New()
-
-	default:
-		return nil, errors.Errorf("unknown article type '%s'", conf.Articles.Type)
-	}
-
-	// Create articles service depending on configuration
-	switch conf.Users.Type {
-	case "postgres":
-		userService, err = postgres.NewUserService(conf.Users.DSN)
-		if err != nil {
-			return nil, errors.Wrap(err, "cannot create users service")
-		}
-
-	case "mock":
-		userService = mock.NewUserService()
-
-	default:
-		return nil, errors.Errorf("unknown users type '%s'", conf.Users.Type)
-	}
-
-	s := &Server{
-		secret:     []byte(conf.Secret),
-		httpServer: httpServer,
-		articles:   articlesService,
-		users:      userService,
-	}
-
-	// Setup API endpoints
-	router.HandleFunc("/articles/", s.HandleArticles).Methods("GET")
-	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
-
-	router.HandleFunc("/users", s.HandleUserRegister).Methods("POST")
-	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
-	router.HandleFunc("/users", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
-
-	return s, nil
-}
-
-// Run starts server to listen and serve requests
-func (s *Server) Run() {
-	s.httpServer.ListenAndServe()
-}
-
-// HandleArticles is a handler for /articles API endpoint
-func (s *Server) HandleArticles(w http.ResponseWriter, r *http.Request) {
-	articles, err := s.articles.List(20)
-	if err != nil {
-		http.Error(w, ServerError(err, "failed to list articles"), http.StatusInternalServerError)
-		return
-	}
-
-	jsonArticles, err := json.Marshal(articles)
-	if err != nil {
-		http.Error(w, ServerError(err, "failed to marshal json for articles list"), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(jsonArticles)
-}
-
-// HandleArticle is a handler for /article/{slug} API endpoint
-func (s *Server) HandleArticle(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	slug := vars["slug"]
-	article, err := s.articles.Get(slug)
-	if err != nil {
-		http.Error(w, ServerError(err, "failed to get article"), http.StatusInternalServerError)
-		return
-	}
-	if article == nil {
-		http.Error(w, ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
-		return
-	}
-
-	jsonArticle, err := json.Marshal(article)
-	if err != nil {
-		http.Error(w, ServerError(err, "failed to marshal json for article get"), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(jsonArticle)
-}
-
-func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
 	var req app.UserRequest
@@ -166,7 +39,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.users.Register(req)
+	user, err := s.Register(req)
 	if err == app.ErrUserExists {
 		http.Error(w, ServerError(err, "failed to register user"), http.StatusConflict)
 		return
@@ -200,7 +73,7 @@ func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonUser)
 }
 
-func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
 	var req app.UserRequest
@@ -216,7 +89,7 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.users.Login(req)
+	user, err := s.Login(req)
 	if err != nil {
 		http.Error(w, ServerError(err, "failed to login"), http.StatusUnauthorized)
 		return
@@ -247,7 +120,7 @@ func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUserGet gets the currently logged-in user. Requires authentication.
-func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 	val := r.Context().Value("email")
 	if val == nil {
 		http.Error(w, ServerError(nil, "no email in context"), http.StatusUnauthorized)
@@ -260,7 +133,7 @@ func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.users.Get(email)
+	user, err := s.Get(email)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "failed to get user"), http.StatusNotFound)
 		return
@@ -281,7 +154,7 @@ func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 // jwtAuthHandler is a middleware that wraps next handler func with JWT token
 // parsing and validation. It also stores authenticated user email into the
 // context.
-func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
+func (s *Service) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader, ok := r.Header["Authorization"]
 		if !ok {
@@ -310,6 +183,12 @@ func (s *Server) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 		authCtx := context.WithValue(r.Context(), "email", sub)
 
 		next(w, r.WithContext(authCtx))
+	}
+}
+
+func (s *Service) loggerHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		next(w, r)
 	}
 }
 

@@ -18,10 +18,11 @@ type UserService interface {
 	// Update(email string, newData User) (*User, error)
 }
 
-// UsersConfig describes configuration for UserService
-type UsersConfig struct {
-	Type string `default:"postgres"`
-	DSN  string `default:"postgres://postgres:postgres@localhost/conduit?sslmode=disable"`
+// UserServiceConfig describes configuration for UserService
+type UserServiceConfig struct {
+	Type   string `default:"postgres"`
+	DSN    string `default:"postgres://postgres:postgres@localhost/conduit?sslmode=disable"`
+	Secret string
 }
 
 // User represents a user

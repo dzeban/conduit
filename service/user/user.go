@@ -1,32 +1,44 @@
-package postgres
+package user
 
 import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dzeban/conduit/app"
-	"github.com/dzeban/conduit/password"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/password"
 )
 
-// UserService provides a service for interacting with user accounts
-type UserService struct {
-	db *sqlx.DB
+// Service provides a service for interacting with user accounts
+type Service struct {
+	db     *sqlx.DB
+	router *mux.Router
+	secret []byte
 }
 
-// NewUserService is a constructor for a UserService
-func NewUserService(DSN string) (*UserService, error) {
+// NewService is a constructor for a Service
+func NewService(DSN string, secret string) (*Service, error) {
 	db, err := sqlx.Connect("postgres", DSN)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to users db")
 	}
 
-	return &UserService{db: db}, nil
+	router := mux.NewRouter().StrictSlash(true)
+
+	s := &Service{db: db, router: router, secret: []byte(secret)}
+
+	router.HandleFunc("/users/", s.HandleUserRegister).Methods("POST")
+	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
+	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
+
+	return s, nil
 }
 
 // Get returns user by email
-func (s *UserService) Get(email string) (*app.User, error) {
+func (s *Service) Get(email string) (*app.User, error) {
 	queryUser := `
 		SELECT
 			name,
@@ -65,7 +77,7 @@ func (s *UserService) Get(email string) (*app.User, error) {
 }
 
 // Login checks the user request and logins the user
-func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
+func (s *Service) Login(req app.UserRequest) (*app.User, error) {
 	fmt.Println(req.User.Email)
 	u, err := s.Get(req.User.Email)
 	if err != nil {
@@ -86,7 +98,7 @@ func (s *UserService) Login(req app.UserRequest) (*app.User, error) {
 }
 
 // Register creates new user in the service and returns it
-func (s *UserService) Register(req app.UserRequest) (*app.User, error) {
+func (s *Service) Register(req app.UserRequest) (*app.User, error) {
 	u, _ := s.Get(req.User.Email)
 	if u != nil {
 		return nil, app.ErrUserExists
