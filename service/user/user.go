@@ -3,12 +3,14 @@ package user
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/db"
 	"github.com/dzeban/conduit/password"
 )
 
@@ -21,7 +23,7 @@ type Service struct {
 
 // NewService is a constructor for a Service
 func NewService(DSN string, secret string) (*Service, error) {
-	db, err := sqlx.Connect("postgres", DSN)
+	db, err := db.ConnectLoop("postgres", DSN, 1*time.Minute)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to users db")
 	}

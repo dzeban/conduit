@@ -2,12 +2,15 @@ package article
 
 import (
 	"database/sql"
+	"time"
 
-	"github.com/dzeban/conduit/app"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/db"
 )
 
 // Service implements app.ArticleService interface
@@ -19,7 +22,7 @@ type Service struct {
 
 // New creates new Article service backed by Postgres
 func NewService(DSN string) (*Service, error) {
-	db, err := sqlx.Connect("postgres", DSN)
+	db, err := db.ConnectLoop("postgres", DSN, 1*time.Minute)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to articles db")
 	}
