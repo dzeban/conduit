@@ -34,14 +34,16 @@ func main() {
 		Handler: router,
 	}
 
+	log.Printf("using config: %#v\n", config)
+
 	articleService, err := article.NewService(config.Articles.DSN)
 	if err != nil {
-		log.Fatal(err, "cannot create articles service")
+		log.Fatal("cannot create articles service: ", err)
 	}
 
 	userService, err := user.NewService(config.Users.DSN, config.Users.Secret)
 	if err != nil {
-		log.Fatal(err, "cannot create users service")
+		log.Fatal("cannot create users service: ", err)
 	}
 
 	// Setup API endpoints
