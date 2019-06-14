@@ -14,14 +14,14 @@ type Article struct {
 	Updated     time.Time `json:"updated"`
 }
 
-// ArticlesService defines an interface to work with articles
-type ArticlesService interface {
+// ArticleService defines an interface to work with articles
+type ArticleService interface {
 	List(n int) ([]Article, error)
 	Get(slug string) (*Article, error)
 }
 
-// ArticlesConfig describes configuration for ArticleService
-type ArticlesConfig struct {
+// ArticleServiceConfig describes configuration for ArticleService
+type ArticleServiceConfig struct {
 	Type string `default:"postgres"`
-	DSN  string `default:"postgres://postgres:postgres@localhost/conduit?sslmode=disable"`
+	DSN  string `default:"postgres://postgres:postgres@postgres/conduit?sslmode=disable"`
 }

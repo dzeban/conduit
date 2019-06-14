@@ -1,0 +1,6 @@
+FROM migrate/migrate:v4.4.0
+
+ADD https://raw.githubusercontent.com/eficode/wait-for/master/wait-for /wait-for
+RUN chmod 0755 /wait-for
+
+ENTRYPOINT ["/wait-for", "postgres:5432", "--", "/migrate"]

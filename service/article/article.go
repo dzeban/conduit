@@ -1,32 +1,43 @@
-package postgres
+package article
 
 import (
 	"database/sql"
+	"time"
 
-	"github.com/dzeban/conduit/app"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/db"
 )
 
-// ArticlesService implements app.ArticleService interface
+// Service implements app.ArticleService interface
 // It serves articles from Postgres
-type ArticlesService struct {
-	db *sqlx.DB
+type Service struct {
+	db     *sqlx.DB
+	router *mux.Router
 }
 
-// New creates new Articles service backed by Postgres
-func New(DSN string) (*ArticlesService, error) {
-	db, err := sqlx.Connect("postgres", DSN)
+// New creates new Article service backed by Postgres
+func NewService(DSN string) (*Service, error) {
+	db, err := db.ConnectLoop("postgres", DSN, 1*time.Minute)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to articles db")
 	}
 
-	return &ArticlesService{db: db}, nil
+	router := mux.NewRouter().StrictSlash(true)
+
+	s := &Service{db: db, router: router}
+	router.HandleFunc("/articles/", s.HandleArticles).Methods("GET")
+	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
+
+	return s, nil
 }
 
 // List returns n articles from Postgres
-func (s *ArticlesService) List(n int) ([]app.Article, error) {
+func (s *Service) List(n int) ([]app.Article, error) {
 	queryArticles := `
 		SELECT
 			slug,
@@ -63,7 +74,7 @@ func (s *ArticlesService) List(n int) ([]app.Article, error) {
 }
 
 // Get returns a single article by its slug
-func (s *ArticlesService) Get(slug string) (*app.Article, error) {
+func (s *Service) Get(slug string) (*app.Article, error) {
 	queryArticle := `
 		SELECT
 			slug,

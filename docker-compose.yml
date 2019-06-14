@@ -1,11 +1,38 @@
-version: '3.1'
+version: '3.7'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.app
+    container_name: api
+    environment:
+      CONFIG_ARTICLES_DSN: postgres://conduit:conduit@postgres/conduit?sslmode=disable
+      CONFIG_USERS_DSN: postgres://conduit:conduit@postgres/conduit?sslmode=disable
+    ports:
+      - 8080:8080
+
   db:
     image: postgres:10-alpine
     restart: always
     container_name: postgres
-    network_mode: host
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: conduit
+      POSTGRES_PASSWORD: conduit
+      POSTGRES_DB: conduit
 
+  migration:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.migrate-wait-for
+    volumes:
+      - type: bind
+        source: ./migrations
+        target: /migrations/
+    command:
+      - "-verbose"
+      - "-path=/migrations/"
+      - "-database=postgresql://conduit:conduit@postgres/conduit?sslmode=disable"
+      - "up"
+    depends_on:
+      - db

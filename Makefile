@@ -6,18 +6,28 @@ run: test build up
 test:
 	go test ./...
 
-build: *.go
-	go build
+build:
+	go build ./cmd/conduit
+
+install:
+	go install ./cmd/conduit
 
 up:
-	docker-compose up -d
+	docker-compose up --build
 
 down:
 	docker-compose down
 
+start:
+	docker-compose up
+
 stop:
 	docker-compose stop
 
-migrate:
-	migrations/migrate -source file://migrations -database postgresql://postgres:postgres@localhost:5432/conduit?sslmode=disable up
+swagger-up:
+	 docker run -p 8888:8080 --name swagger-conduit -e SWAGGER_JSON=/api/swagger.json -v $$(pwd)/api:/api -d swaggerapi/swagger-ui
+	 xdg-open http://localhost:8888
 
+swagger-down:
+	docker stop swagger-conduit
+	docker rm swagger-conduit
