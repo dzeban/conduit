@@ -1,15 +1,20 @@
-.PHONY: up down stop migrate
+.PHONY: run vendor test build install up down start stop swagger-up swagger-down
+
+export GOFLAGS = -mod=vendor
 
 run: test build up
 	./conduit
 
-test:
+vendor:
+	go mod vendor
+
+test: vendor
 	go test ./...
 
-build:
+build: vendor
 	go build ./cmd/conduit
 
-install:
+install: vendor
 	go install ./cmd/conduit
 
 up:
