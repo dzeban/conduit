@@ -31,7 +31,6 @@ func NewService(DSN string, secret string) (*Service, error) {
 	router := mux.NewRouter().StrictSlash(true)
 
 	s := &Service{db: db, router: router, secret: []byte(secret)}
-
 	router.HandleFunc("/users/", s.HandleUserRegister).Methods("POST")
 	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
 	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
@@ -57,7 +56,8 @@ func (s *Service) Get(email string) (*app.User, error) {
 
 	// Scan the row using simple Scan method.
 	// We can't use StructScan to the app.User var because bio and image may be
-	// NULL so these fields must be handled via sql.NullString.
+	// NULL so these fields must be handled via sql.NullString. We can't use
+	// these sql-specific types in app.User because they're, well, sql-specific
 	var name, password string
 	var bio, image sql.NullString
 	err := row.Scan(&name, &bio, &image, &password)
