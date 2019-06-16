@@ -1,0 +1,6 @@
+FROM golang:1.12-alpine
+
+RUN apk add --no-cache git
+
+WORKDIR /conduit
+CMD CGO_ENABLED=0 go test -v ./...

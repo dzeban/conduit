@@ -1,0 +1,38 @@
+# Integration testing
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:10-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+
+  migration:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.migrate-wait-for
+    volumes:
+      - type: bind
+        source: ./migrations
+        target: /migrations/
+    command:
+      - "-verbose"
+      - "-path=/migrations/"
+      - "-database=postgresql://test:test@postgres:5432/test?sslmode=disable"
+      - "up"
+    depends_on:
+      - postgres
+
+  test:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.test
+    volumes:
+      - type: bind
+        source: ./
+        target: /conduit
+    depends_on:
+      - migration
