@@ -14,7 +14,7 @@ test: vendor
 build: vendor
 	go build ./cmd/conduit
 
-install: vendor
+install:
 	go install ./cmd/conduit
 
 up:

@@ -1,21 +1,19 @@
 version: '3.7'
 
 services:
-  app:
+  api:
     build:
       context: .
       dockerfile: deploy/Dockerfile.app
-    container_name: api
     environment:
       CONFIG_ARTICLES_DSN: postgres://conduit:conduit@postgres/conduit?sslmode=disable
       CONFIG_USERS_DSN: postgres://conduit:conduit@postgres/conduit?sslmode=disable
     ports:
       - 8080:8080
 
-  db:
+  postgres:
     image: postgres:10-alpine
     restart: always
-    container_name: postgres
     environment:
       POSTGRES_USER: conduit
       POSTGRES_PASSWORD: conduit
@@ -35,4 +33,4 @@ services:
       - "-database=postgresql://conduit:conduit@postgres/conduit?sslmode=disable"
       - "up"
     depends_on:
-      - db
+      - postgres
