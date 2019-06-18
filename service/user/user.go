@@ -34,6 +34,7 @@ func NewService(DSN string, secret string) (*Service, error) {
 	router.HandleFunc("/users/", s.HandleUserRegister).Methods("POST")
 	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
 	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
+	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserUpdate)).Methods("PUT")
 
 	return s, nil
 }
@@ -76,6 +77,36 @@ func (s *Service) Get(email string) (*app.User, error) {
 	}
 
 	return &user, nil
+}
+
+func (s *Service) Update(email string, req app.UserRequest) (*app.User, error) {
+	u := &req.User
+
+	// If password is being changed, make the hash from it
+	if u.Password != "" {
+		hash, err := password.HashAndEncode(req.User.Password)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create password hsah")
+		}
+
+		u.Password = hash
+	}
+
+	query, args, err := buildUpdateUserQuery(s.db, u)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build update query")
+	}
+
+	// Execute update.
+	// args are created from user struct and used in SET expressions for actual
+	// update. email is used in WHERE clause as search condition.
+	args = append(args, email)
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to execute update query")
+	}
+
+	return u, nil
 }
 
 // Login checks the user request and logins the user

@@ -23,6 +23,67 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
+func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
+	// Decode user request from JSON body
+	decoder := json.NewDecoder(r.Body)
+	var req app.UserRequest
+	err := decoder.Decode(&req)
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to decode request"), http.StatusBadRequest)
+		return
+	}
+
+	err = req.User.ValidateForUpdate()
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to validate request"), http.StatusBadRequest)
+		return
+	}
+
+	email, ok := r.Context().Value("email").(string)
+	if !ok {
+		http.Error(w, ServerError(err, "no email in context"), http.StatusUnauthorized)
+		return
+	}
+
+	if req.User.Email != "" && req.User.Email != email {
+		http.Error(w, ServerError(err, "not allowed to update other user"), http.StatusForbidden)
+		return
+	}
+
+	user, err := s.Update(email, req)
+	if err == app.ErrUserNotFound {
+		http.Error(w, ServerError(err, "no such user"), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, ServerError(err, "failed to update user"), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate new JWT because user was updated
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":    user.Email,
+		"signed": true,
+	})
+
+	tokenString, err := token.SignedString(s.secret)
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to create token"), http.StatusInternalServerError)
+		return
+	}
+
+	user.Token = tokenString
+
+	// Prepare and send reply with user data, including token
+	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonUser)
+}
+
 func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)

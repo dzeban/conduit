@@ -107,3 +107,17 @@ func (u User) ValidateForLogin() error {
 
 	return nil
 }
+
+// ValidateForUpdate validates user object that is used in Update handler
+// It checks the presense of at least one field.
+func (u User) ValidateForUpdate() error {
+	if u.Name == "" &&
+		u.Email == "" &&
+		u.Bio == "" &&
+		u.Image == "" &&
+		u.Password == "" {
+		return errors.New("at least one of name, email, bio, image, password is required for update")
+	}
+
+	return nil
+}
