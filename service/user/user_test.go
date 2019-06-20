@@ -68,3 +68,39 @@ func TestGet(t *testing.T) {
 		})
 	}
 }
+
+func TestLogin(t *testing.T) {
+	// New user can't login
+	newUser := app.User{
+		Name:     "new",
+		Email:    "new@example.com",
+		Password: "new",
+	}
+
+	userValid := *user
+	userValid.Password = "test"
+
+	userInvalid := *user
+	userInvalid.Password = "invalidpassword"
+
+	tests := []struct {
+		name   string
+		user   app.User
+		hasErr bool
+	}{
+		{"valid", userValid, false},
+		{"invalid", userInvalid, true},
+		{"new", newUser, true},
+	}
+
+	for _, expected := range tests {
+		t.Run(expected.name, func(t *testing.T) {
+			_, err := service.Login(app.UserRequest{User: expected.user})
+
+			hasErr := (err != nil)
+			if hasErr != expected.hasErr {
+				t.Errorf("err doesn't match, expected '%v', got '%v', user is %#v\n", expected.hasErr, hasErr, expected.user)
+			}
+		})
+	}
+}
