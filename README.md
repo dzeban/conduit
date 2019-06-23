@@ -21,16 +21,3 @@ This will start Postgres in container via docker-compose.
 
     make migrate
 
-# TODO
-
-- [x] Make error values, add String(), remove hardcoded string comparison in
-  tests
-- [x] Replace hardcoded integer status codes to net/http constants
-- [x] Rewrite server configuration
-- [ ] Add logging middleware
-- [x] Fix error status codes
-- [ ] Add "exp" claim to JWT, validate it
-- [ ] Use Postgres implementation in server tests
-- [ ] Reorganize packages - remove mock package, create `article`, `user`, etc.
-  packages from postgres; move `app` package content to the dedicated packages,
-  remove interfaces.
