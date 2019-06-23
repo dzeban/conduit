@@ -42,6 +42,13 @@ func main() {
 			Func: user.Get,
 		})
 
+		userCmd.AddCmd(&ishell.Cmd{
+			Name:                "update",
+			Help:                "Update current user",
+			Func:                user.Update,
+			CompleterWithPrefix: OptsCompleter(user.UpdateOpts),
+		})
+
 		cli.AddCmd(userCmd)
 	}
 
