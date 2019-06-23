@@ -42,3 +42,7 @@ integration-test:
 
 integration-test-down:
 	docker-compose -f docker-compose.test.yml down
+
+cli: vendor
+	go build ./cmd/cli
+
