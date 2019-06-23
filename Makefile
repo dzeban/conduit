@@ -46,3 +46,5 @@ integration-test-down:
 cli: vendor
 	go build ./cmd/cli
 
+psql:
+	docker-compose exec postgres psql -U conduit
