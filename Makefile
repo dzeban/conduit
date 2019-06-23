@@ -36,3 +36,9 @@ swagger-up:
 swagger-down:
 	docker stop swagger-conduit
 	docker rm swagger-conduit
+
+integration-test:
+	docker-compose -f docker-compose.test.yml up --build
+
+integration-test-down:
+	docker-compose -f docker-compose.test.yml down
