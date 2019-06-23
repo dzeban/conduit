@@ -7,13 +7,12 @@ import (
 	"strings"
 
 	"github.com/abiosoft/ishell"
-	"github.com/sahilm/fuzzy"
 
 	"github.com/dzeban/conduit/cmd/cli/debug"
 	"github.com/dzeban/conduit/cmd/cli/state"
 )
 
-var loginOpts = []string{
+var LoginOpts = []string{
 	"email",
 	"password",
 }
@@ -62,19 +61,4 @@ func Login(c *ishell.Context) {
 
 		c.SetPrompt(fmt.Sprintf("(%s) > ", state.CurrentUsername))
 	}
-}
-
-func LoginComplete(prefix string, args []string) []string {
-	if prefix == "" {
-		return loginOpts
-	}
-
-	var completion []string
-
-	matches := fuzzy.Find(prefix, loginOpts)
-	for _, match := range matches {
-		completion = append(completion, match.Str)
-	}
-
-	return completion
 }

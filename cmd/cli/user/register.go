@@ -7,13 +7,12 @@ import (
 	"strings"
 
 	"github.com/abiosoft/ishell"
-	"github.com/sahilm/fuzzy"
 
 	"github.com/dzeban/conduit/cmd/cli/debug"
 	"github.com/dzeban/conduit/cmd/cli/state"
 )
 
-var registerOpts = []string{
+var RegisterOpts = []string{
 	"username",
 	"email",
 	"bio",
@@ -71,19 +70,4 @@ func Register(c *ishell.Context) {
 
 		c.SetPrompt(fmt.Sprintf("(%s) > ", state.CurrentUsername))
 	}
-}
-
-func RegisterComplete(prefix string, args []string) []string {
-	if prefix == "" {
-		return registerOpts
-	}
-
-	var completion []string
-
-	matches := fuzzy.Find(prefix, registerOpts)
-	for _, match := range matches {
-		completion = append(completion, match.Str)
-	}
-
-	return completion
 }
