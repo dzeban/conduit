@@ -104,3 +104,82 @@ func TestLogin(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdate(t *testing.T) {
+	// Prepare test user
+	testUser := app.User{
+		Name:     "toupdate",
+		Email:    "toupdate@example.com",
+		Password: "toupdate",
+	}
+
+	u, err := service.Register(app.UserRequest{User: testUser})
+	if err != nil {
+		t.Error("failed to prepare test user: " + err.Error())
+	}
+
+	// Prepare update info
+	u.Name = "newname"
+	u.Bio = "mystery"
+	u.Image = "image_in_base64"
+
+	// Remove password field to prevent password update
+	savedHash := u.Password
+	u.Password = ""
+
+	updateUser, err := service.Update(u.Email, app.UserRequest{User: *u})
+	if err != nil {
+		t.Error("failed to get user after update: " + err.Error())
+	}
+
+	// Restore password to correctly compare objects
+	u.Password = savedHash
+
+	if diff := deep.Equal(u, updateUser); diff != nil {
+		t.Errorf("users not matched after update: %v", diff)
+	}
+
+	getUser, err := service.Get(u.Email)
+	if err != nil {
+		t.Error("failed to get user after update: " + err.Error())
+	}
+
+	if diff := deep.Equal(u, getUser); diff != nil {
+		t.Errorf("users not matched after update: %v", diff)
+	}
+}
+
+// TestUpdatePassword updates password and then try to login with the new one
+func TestUpdatePassword(t *testing.T) {
+	oldPassword := "old_password"
+	newPassword := "new_password"
+
+	// Prepare test user
+	testUser := app.User{
+		Name:     "passwordupdate",
+		Email:    "passwordupdate@example.com",
+		Password: oldPassword,
+	}
+
+	u, err := service.Register(app.UserRequest{User: testUser})
+	if err != nil {
+		t.Error("failed to prepare test user: " + err.Error())
+	}
+
+	// Update password
+	u.Password = newPassword
+
+	updateUser, err := service.Update(u.Email, app.UserRequest{User: *u})
+	if err != nil {
+		t.Error("failed to get user after update: " + err.Error())
+	}
+
+	// Set plain-text password field because update return password hash
+	updateUser.Password = newPassword
+
+	// Try to login with the new password
+	_, err = service.Login(app.UserRequest{User: *u})
+	if err != nil {
+		t.Error(err)
+	}
+}

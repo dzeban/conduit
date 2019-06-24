@@ -38,10 +38,14 @@ swagger-down:
 	docker rm swagger-conduit
 
 integration-test:
+	docker-compose -f docker-compose.test.yml down
 	docker-compose -f docker-compose.test.yml up --build
 
 integration-test-down:
 	docker-compose -f docker-compose.test.yml down
+
+integration-test-psql:
+	docker-compose -f docker-compose.test.yml exec postgres psql -U test
 
 cli: vendor
 	go build ./cmd/cli
