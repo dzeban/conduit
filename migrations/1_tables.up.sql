@@ -9,9 +9,8 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    id serial PRIMARY KEY,
+    email text PRIMARY KEY,
     name text NOT NULL,
-    email text UNIQUE NOT NULL,
     bio text,
     image text, -- base64
     password text NOT NULL
