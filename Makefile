@@ -18,6 +18,7 @@ install:
 	go install ./cmd/conduit
 
 up:
+	docker-compose down
 	docker-compose up --build
 
 down:
