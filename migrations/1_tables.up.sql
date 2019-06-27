@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS articles (
 
 CREATE TABLE IF NOT EXISTS users (
     email text PRIMARY KEY,
-    name text NOT NULL,
+    name text UNIQUE NOT NULL,
     bio text,
     image text, -- base64
     password text NOT NULL
