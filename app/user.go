@@ -15,7 +15,8 @@ type UserService interface {
 	Login(ur UserRequest) (*User, error)
 	Register(ur UserRequest) (*User, error)
 	Get(email string) (*User, error)
-	// Update(email string, newData User) (*User, error)
+	Update(email string, ur UserRequest) (*User, error)
+	Profile(name string) (*Profile, error)
 }
 
 // UserServiceConfig describes configuration for UserService
@@ -76,6 +77,19 @@ func (ur UserRequest) MarshalJSON() ([]byte, error) {
 			Token: u.Token,
 		},
 	})
+}
+
+// Profile is a public user info with restricted set of fields
+type Profile struct {
+	Name      string `json:"username"`
+	Bio       string `json:"bio"`
+	Image     string `json:"image"`               // base64 encoded
+	Following bool   `json:"following,omitempty"` // set for authenticated users
+}
+
+// ProfileResponse is a structure returned in profile handlers
+type ProfileResponse struct {
+	Profile Profile `json:"profile"`
 }
 
 // ValidateForRegister validates user object that is used in Register handler

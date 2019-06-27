@@ -3,13 +3,13 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/dzeban/conduit/app"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
 )
 
 var (
@@ -210,6 +210,28 @@ func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(jsonUser)
+}
+
+func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	profile, err := s.Profile(username)
+	if err == app.ErrUserNotFound {
+		http.Error(w, ServerError(err, "no such user"), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, ServerError(err, "failed to get profile"), http.StatusInternalServerError)
+		return
+	}
+
+	jsonProfile, err := json.Marshal(app.ProfileResponse{Profile: *profile})
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonProfile)
 }
 
 // jwtAuthHandler is a middleware that wraps next handler func with JWT token

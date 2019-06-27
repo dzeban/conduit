@@ -36,6 +36,8 @@ func NewService(DSN string, secret string) (*Service, error) {
 	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
 	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserUpdate)).Methods("PUT")
 
+	router.HandleFunc("/profiles/{username}", s.HandleProfileGet).Methods("GET")
+
 	return s, nil
 }
 
@@ -159,4 +161,40 @@ func (s *Service) Register(req app.UserRequest) (*app.User, error) {
 	}
 
 	return &newUser, nil
+}
+
+func (s *Service) Profile(username string) (*app.Profile, error) {
+	queryProfile := `
+		SELECT
+			name,
+			bio,
+			image
+		FROM
+			users
+		WHERE
+			name = $1
+	`
+
+	row := s.db.QueryRowx(queryProfile, username)
+
+	// Scan the row using simple Scan method.
+	// We can't use StructScan to the app.User var because bio and image may be
+	// NULL so these fields must be handled via sql.NullString. We can't use
+	// these sql-specific types in app.User because they're, well, sql-specific
+	var name string
+	var bio, image sql.NullString
+	err := row.Scan(&name, &bio, &image)
+	if err == sql.ErrNoRows {
+		return nil, app.ErrUserNotFound
+	} else if err != nil {
+		return nil, errors.Wrap(err, "failed to query user")
+	}
+
+	profile := app.Profile{
+		Name:  name,
+		Bio:   bio.String,
+		Image: image.String,
+	}
+
+	return &profile, nil
 }

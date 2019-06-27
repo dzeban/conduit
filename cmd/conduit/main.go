@@ -49,6 +49,7 @@ func main() {
 	// Setup API endpoints
 	router.PathPrefix("/articles").Handler(articleService)
 	router.PathPrefix("/users").Handler(userService)
+	router.PathPrefix("/profiles").Handler(userService)
 
 	log.Println("start listening on", server.Addr)
 	log.Fatal(server.ListenAndServe())
