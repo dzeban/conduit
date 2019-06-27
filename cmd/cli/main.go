@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/ishell"
 	"github.com/abiosoft/readline"
 
+	"github.com/dzeban/conduit/cmd/cli/profile"
 	"github.com/dzeban/conduit/cmd/cli/state"
 	"github.com/dzeban/conduit/cmd/cli/user"
 )
@@ -50,6 +51,23 @@ func main() {
 		})
 
 		cli.AddCmd(userCmd)
+	}
+
+	// profile commands
+	{
+		profileCmd := &ishell.Cmd{
+			Name: "profile",
+			Help: "Interact with profiles - get, follow, unfollow",
+		}
+
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name:                "get",
+			Help:                "Get profile by name",
+			Func:                profile.Get,
+			CompleterWithPrefix: OptsCompleter(profile.GetOpts),
+		})
+
+		cli.AddCmd(profileCmd)
 	}
 
 	cli.SetHistoryPath(".conduit_history")
