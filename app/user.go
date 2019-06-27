@@ -29,12 +29,12 @@ type UserServiceConfig struct {
 // User is identified by email and authenticated by JWT
 // Password is hidden by custom marshaller
 type User struct {
-	Name     string `json:"username" db:"name"`
-	Email    string `json:"email" db:"email"`
-	Bio      string `json:"bio,omitempty" db:"bio"`
-	Image    string `json:"image,omitempty" db:"image"` // base64 encoded
+	Name     string `json:"username"`
+	Email    string `json:"email"`
+	Bio      string `json:"bio,omitempty"`
+	Image    string `json:"image,omitempty"` // base64 encoded
 	Token    string `json:"token,omitempty"`
-	Password string `json:"password,omitempty" db:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 // MarshalJSON custom serializer hides password field
