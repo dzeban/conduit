@@ -69,6 +69,35 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestProfile(t *testing.T) {
+	profile := &app.Profile{
+		Name:  user.Name,
+		Bio:   user.Bio,
+		Image: user.Image,
+	}
+
+	tests := []struct {
+		name    string
+		profile *app.Profile
+		err     error
+	}{
+		{profile.Name, profile, nil},
+		{"nosuchuser", nil, app.ErrUserNotFound},
+	}
+
+	for _, expected := range tests {
+		p, err := service.Profile(expected.name)
+
+		if err != expected.err {
+			t.Errorf("invalid error: expected %v got %v", expected.err, err)
+		}
+
+		if diff := deep.Equal(p, expected.profile); diff != nil {
+			t.Errorf("invalid user: %v", diff)
+		}
+	}
+}
+
 func TestLogin(t *testing.T) {
 	// New user can't login
 	newUser := app.User{
