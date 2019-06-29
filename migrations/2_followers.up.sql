@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS followers (
-    follower text REFERENCES users (email),
-    follows  text REFERENCES users (email)
+    follower text REFERENCES users (name),
+    follows  text REFERENCES users (name),
+    UNIQUE(follower, follows)
 );

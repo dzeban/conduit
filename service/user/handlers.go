@@ -234,6 +234,53 @@ func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonProfile)
 }
 
+func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	username := vars["username"]
+
+	email, ok := r.Context().Value("email").(string)
+	if !ok {
+		http.Error(w, ServerError(nil, "no email in context"), http.StatusUnauthorized)
+		return
+	}
+
+	// Query current user to get name
+	follower, err := s.Get(email)
+	if err == app.ErrUserNotFound {
+		http.Error(w, ServerError(err, "no such user"), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, ServerError(err, "failed to get user"), http.StatusInternalServerError)
+		return
+	}
+
+	// Query profile to follow to ensure it exists
+	profile, err := s.Profile(username)
+	if err == app.ErrUserNotFound {
+		http.Error(w, ServerError(err, "no such profile"), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, ServerError(err, "failed to get profile"), http.StatusInternalServerError)
+		return
+	}
+
+	err = s.Follow(follower.Name, username)
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to follow user"), http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare and send reply with profile data
+	jsonUser, err := json.Marshal(app.ProfileResponse{Profile: *profile})
+	if err != nil {
+		http.Error(w, ServerError(err, "failed to marshal response"), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonUser)
+}
+
 // jwtAuthHandler is a middleware that wraps next handler func with JWT token
 // parsing and validation. It also stores authenticated user email into the
 // context.

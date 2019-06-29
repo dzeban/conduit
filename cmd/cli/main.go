@@ -67,6 +67,13 @@ func main() {
 			CompleterWithPrefix: OptsCompleter(profile.GetOpts),
 		})
 
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name:                "follow",
+			Help:                "Follow user by name",
+			Func:                profile.Follow,
+			CompleterWithPrefix: OptsCompleter(profile.FollowOpts),
+		})
+
 		cli.AddCmd(profileCmd)
 	}
 
