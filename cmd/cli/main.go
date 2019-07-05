@@ -74,6 +74,13 @@ func main() {
 			CompleterWithPrefix: OptsCompleter(profile.FollowOpts),
 		})
 
+		profileCmd.AddCmd(&ishell.Cmd{
+			Name:                "unfollow",
+			Help:                "Unfollow user by name",
+			Func:                profile.Unfollow,
+			CompleterWithPrefix: OptsCompleter(profile.UnfollowOpts),
+		})
+
 		cli.AddCmd(profileCmd)
 	}
 

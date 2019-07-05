@@ -38,6 +38,7 @@ func NewService(DSN string, secret string) (*Service, error) {
 
 	router.HandleFunc("/profiles/{username}", s.HandleProfileGet).Methods("GET")
 	router.HandleFunc("/profiles/{username}/follow", s.jwtAuthHandler(s.HandleProfileFollow)).Methods("POST")
+	router.HandleFunc("/profiles/{username}/unfollow", s.jwtAuthHandler(s.HandleProfileUnfollow)).Methods("POST")
 
 	return s, nil
 }
@@ -205,6 +206,20 @@ func (s *Service) Follow(follower, follows string) error {
 		INSERT INTO followers (follower, follows)
 		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING
+	`
+
+	_, err := s.db.Exec(queryFollow, follower, follows)
+	if err != nil {
+		return errors.Wrap(err, "failed to insert user to db")
+	}
+
+	return nil
+}
+
+func (s *Service) Unfollow(follower, follows string) error {
+	queryFollow := `
+		DELETE FROM followers
+		WHERE follower=$1 AND follows=$2
 	`
 
 	_, err := s.db.Exec(queryFollow, follower, follows)
