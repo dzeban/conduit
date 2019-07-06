@@ -1,6 +1,6 @@
 # Binaries
-conduit
-hashpass
+./conduit
+./hashpass
 
 # Binaries for programs and plugins
 *.exe
