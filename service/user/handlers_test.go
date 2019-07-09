@@ -74,7 +74,7 @@ func TestHandleUserLogin(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			resp, err := http.Post(server.URL+"/users/login", "application/json", strings.NewReader(test.data))
+			resp, err := http.Post(testServer.URL+"/users/login", "application/json", strings.NewReader(test.data))
 			if err != nil {
 				t.Error("failed to make a request:", err)
 			}
@@ -139,7 +139,7 @@ func TestHandleUserRegister(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			resp, err := http.Post(server.URL+"/users/", "application/json", strings.NewReader(test.data))
+			resp, err := http.Post(testServer.URL+"/users/", "application/json", strings.NewReader(test.data))
 			if err != nil {
 				t.Error("failed to make a request:", err)
 			}
@@ -163,7 +163,7 @@ func TestHandleUserRegister(t *testing.T) {
 func TestHandleUserGet(t *testing.T) {
 	// Register new user to obtain token
 	userData := `{"user":{"email":"testUserGet@example.com","username": "testUserGet", "password":"password"}}`
-	resp, err := http.Post(server.URL+"/users/", "application/json", strings.NewReader(userData))
+	resp, err := http.Post(testServer.URL+"/users/", "application/json", strings.NewReader(userData))
 	if err != nil {
 		t.Error("failed to make a request:", err)
 	}
@@ -182,7 +182,7 @@ func TestHandleUserGet(t *testing.T) {
 	}
 
 	// Get user
-	req, err := http.NewRequest("GET", server.URL+"/users/", nil)
+	req, err := http.NewRequest("GET", testServer.URL+"/users/", nil)
 	if err != nil {
 		t.Errorf("failed to create request")
 	}
@@ -244,7 +244,7 @@ func TestHandleUserGetAuth(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req, err := http.NewRequest("GET", server.URL+"/users/", nil)
+			req, err := http.NewRequest("GET", testServer.URL+"/users/", nil)
 			if err != nil {
 				t.Errorf("failed to create request")
 			}

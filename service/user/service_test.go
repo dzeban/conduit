@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	service *Service
-	server  *httptest.Server
-	user    *app.User
+	testService *Service
+	testServer  *httptest.Server
+	testUser    *app.User
 )
 
 const (
@@ -26,22 +26,22 @@ const (
 // testing http handlers.
 func TestMain(m *testing.M) {
 	var err error
-	service, err = NewService(DSN, secret)
+	testService, err = NewService(DSN, secret)
 	if err != nil {
 		panic("failed to create service: " + err.Error())
 	}
 
-	server = httptest.NewServer(service.router)
-	defer server.Close()
+	testServer = httptest.NewServer(testService.router)
+	defer testServer.Close()
 
 	// Prepare test user
-	testUser := app.User{
+	u := app.User{
 		Name:     "test",
 		Email:    "test@example.com",
 		Password: "test",
 	}
 
-	user, err = service.Register(app.UserRequest{User: testUser})
+	testUser, err = testService.Register(app.UserRequest{User: u})
 	if err != nil {
 		panic("failed to prepare test user: " + err.Error())
 	}
