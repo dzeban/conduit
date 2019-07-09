@@ -194,6 +194,11 @@ func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if email == "" {
+		http.Error(w, ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
 	user, err := s.Get(email)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "failed to get user"), http.StatusNotFound)
