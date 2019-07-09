@@ -160,6 +160,111 @@ func TestHandleUserRegister(t *testing.T) {
 	}
 }
 
+func TestHandleUserGet(t *testing.T) {
+	// Register new user to obtain token
+	userData := `{"user":{"email":"testUserGet@example.com","username": "testUserGet", "password":"password"}}`
+	resp, err := http.Post(server.URL+"/users/", "application/json", strings.NewReader(userData))
+	if err != nil {
+		t.Error("failed to make a request:", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("invalid status code: expected %d, got %d", http.StatusCreated, resp.StatusCode)
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	var response userResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		t.Errorf("failed to unmarshal response: %s", err)
+	}
+
+	// Get user
+	req, err := http.NewRequest("GET", server.URL+"/users/", nil)
+	if err != nil {
+		t.Errorf("failed to create request")
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Token %s", response.User.Token))
+
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Error("failed to make a request:", err)
+	}
+
+	body, _ = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("invalid status code: expected %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+
+	err = checkResponse(&response, body)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestHandleUserGetAuth(t *testing.T) {
+	tests := []struct {
+		name       string
+		authHeader string
+		status     int
+	}{
+		{
+			name:       "null",
+			authHeader: "",
+			status:     http.StatusBadRequest,
+		},
+		{
+			name:       "empty",
+			authHeader: "Token ",
+			status:     http.StatusBadRequest,
+		},
+		{
+			// no sub claim
+			name:       "nosub",
+			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
+			status:     http.StatusUnauthorized,
+		},
+		{
+			// empty sub claim
+			name:       "emptysub",
+			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
+			status:     http.StatusUnauthorized,
+		},
+		{
+			// email is nosuchuser@example.com
+			name:       "notfound",
+			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20ifQ.7Ckyqr4bsJRSSsEjRcNmskSNqhhPQkqBi2huaFX9MRY",
+			status:     http.StatusNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", server.URL+"/users/", nil)
+			if err != nil {
+				t.Errorf("failed to create request")
+			}
+			req.Header.Add("Authorization", test.authHeader)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Error("failed to make a request:", err)
+			}
+			defer resp.Body.Close()
+
+			body, _ := ioutil.ReadAll(resp.Body)
+			if test.status != resp.StatusCode {
+				t.Errorf("invalid status code: expected %d, got %d", test.status, resp.StatusCode)
+				t.Error(string(body))
+			}
+		})
+	}
+}
+
 func checkResponse(expected *userResponse, body []byte) error {
 	// Check response
 	var response userResponse
