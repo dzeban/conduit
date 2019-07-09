@@ -177,13 +177,15 @@ func checkResponse(expected *userResponse, body []byte) error {
 		return fmt.Errorf("invalid email: expected %v, got %v", expected.User.Email, response.User.Email)
 	}
 
-	// Check token by parsing it
-	token, err := jwt.Parse(response.User.Token, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
-	})
+	if response.User.Token != "" {
+		// Check token by parsing it
+		_, err = jwt.Parse(response.User.Token, func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
 
-	if !token.Valid {
-		return fmt.Errorf("invalid token: %s", err)
+		if err != nil {
+			return fmt.Errorf("invalid token '%s': %s", response.User.Token, err)
+		}
 	}
 
 	return nil
