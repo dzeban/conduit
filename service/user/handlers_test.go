@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 )
 
 //
@@ -161,24 +162,9 @@ func TestHandleUserRegister(t *testing.T) {
 }
 
 func TestHandleUserGet(t *testing.T) {
-	// Register new user to obtain token
-	userData := `{"user":{"email":"testUserGet@example.com","username": "testUserGet", "password":"password"}}`
-	resp, err := http.Post(testServer.URL+"/users/", "application/json", strings.NewReader(userData))
+	response, err := registerTestUser("testUserGet@example.com", "testUserGet", "password")
 	if err != nil {
-		t.Error("failed to make a request:", err)
-	}
-
-	if resp.StatusCode != http.StatusCreated {
-		t.Errorf("invalid status code: expected %d, got %d", http.StatusCreated, resp.StatusCode)
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-
-	var response userResponse
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		t.Errorf("failed to unmarshal response: %s", err)
+		t.Errorf("failed to register test user")
 	}
 
 	// Get user
@@ -188,19 +174,19 @@ func TestHandleUserGet(t *testing.T) {
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Token %s", response.User.Token))
 
-	resp, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Error("failed to make a request:", err)
 	}
 
-	body, _ = ioutil.ReadAll(resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("invalid status code: expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 
-	err = checkResponse(&response, body)
+	err = checkResponse(response, body)
 	if err != nil {
 		t.Error(err)
 	}
@@ -294,4 +280,28 @@ func checkResponse(expected *userResponse, body []byte) error {
 	}
 
 	return nil
+}
+
+// registerTestUser registers new user and obtains token
+func registerTestUser(email, username, password string) (*userResponse, error) {
+	userData := fmt.Sprintf(`{"user":{"email":"%s","username": "%s", "password":"%s"}}`, email, username, password)
+	resp, err := http.Post(testServer.URL+"/users/", "application/json", strings.NewReader(userData))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to make user register request")
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("invalid status code: expected %d, got %d", http.StatusCreated, resp.StatusCode)
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	var response userResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal response")
+	}
+
+	return &response, nil
 }
