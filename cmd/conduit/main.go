@@ -41,7 +41,7 @@ func main() {
 		log.Fatal("cannot create articles service: ", err)
 	}
 
-	userService, err := user.NewService(config.Users.DSN, config.Users.Secret)
+	userService, err := user.NewFromDSN(config.Users.DSN, config.Users.Secret)
 	if err != nil {
 		log.Fatal("cannot create users service: ", err)
 	}

@@ -6,17 +6,18 @@ import (
 )
 
 var (
-	ErrUserExists   = errors.New("user already exists")
-	ErrUserNotFound = errors.New("no such user")
+	ErrUserExists       = errors.New("user already exists")
+	ErrUserNotFound     = errors.New("no such user")
+	ErrPasswordMismatch = errors.New("password mismatch")
 )
 
-// UserService defines and interface to work with users
-type UserService interface {
-	Login(ur UserRequest) (*User, error)
-	Register(ur UserRequest) (*User, error)
+type UserStore interface {
 	Get(email string) (*User, error)
-	Update(email string, ur UserRequest) (*User, error)
-	Profile(name string) (*Profile, error)
+	Add(user User) error
+	Update(email string, user User) error
+	Profile(username string) (*Profile, error)
+	Follow(follower, follows string) error
+	Unfollow(follower, follows string) error
 }
 
 // UserServiceConfig describes configuration for UserService

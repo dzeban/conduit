@@ -50,7 +50,7 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.Update(email, req)
+	user, err := s.Update(email, req.User)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -100,7 +100,7 @@ func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.Register(req)
+	user, err := s.Register(req.User)
 	if err == app.ErrUserExists {
 		http.Error(w, ServerError(err, "failed to register user"), http.StatusConflict)
 		return
@@ -150,7 +150,7 @@ func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.Login(req)
+	user, err := s.Login(req.User)
 	if err != nil {
 		http.Error(w, ServerError(err, "failed to login"), http.StatusUnauthorized)
 		return
@@ -221,7 +221,7 @@ func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	username := vars["username"]
 
-	profile, err := s.Profile(username)
+	profile, err := s.store.Profile(username)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -260,7 +260,7 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query profile to follow to ensure it exists
-	profile, err := s.Profile(username)
+	profile, err := s.store.Profile(username)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "no such profile"), http.StatusNotFound)
 		return
@@ -269,7 +269,7 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.Follow(follower.Name, username)
+	err = s.store.Follow(follower.Name, username)
 	if err != nil {
 		http.Error(w, ServerError(err, "failed to follow user"), http.StatusInternalServerError)
 		return
@@ -307,7 +307,7 @@ func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Query profile to follow to ensure it exists
-	profile, err := s.Profile(username)
+	profile, err := s.store.Profile(username)
 	if err == app.ErrUserNotFound {
 		http.Error(w, ServerError(err, "no such profile"), http.StatusNotFound)
 		return
@@ -316,7 +316,7 @@ func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = s.Unfollow(follower.Name, username)
+	err = s.store.Unfollow(follower.Name, username)
 	if err != nil {
 		http.Error(w, ServerError(err, "failed to follow user"), http.StatusInternalServerError)
 		return

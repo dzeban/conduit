@@ -1,50 +1,35 @@
-// +build integration
-
 package user
 
 import (
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/dzeban/conduit/app"
 )
 
-var (
-	testService *Service
-	testServer  *httptest.Server
-	testUser    *app.User
-)
-
-const (
-	DSN    = "postgres://test:test@postgres:5432/test?sslmode=disable"
-	secret = "test"
-)
-
-// TestMain initializes integration test environment by creating service
-// instance with a predefined user account. It also create test server used for
-// testing http handlers.
-func TestMain(m *testing.M) {
-	var err error
-	testService, err = NewService(DSN, secret)
-	if err != nil {
-		panic("failed to create service: " + err.Error())
+func TestLogin(t *testing.T) {
+	cases := []struct {
+		user app.User
+		err  error
+	}{
+		{
+			app.User{Email: "test@example.com", Password: "test"},
+			nil,
+		},
+		{
+			app.User{Email: "no@example.com", Password: "test"},
+			app.ErrUserNotFound,
+		},
+		{
+			app.User{Email: "test@example.com", Password: "invalid"},
+			app.ErrPasswordMismatch,
+		},
 	}
 
-	testServer = httptest.NewServer(testService.router)
-	defer testServer.Close()
-
-	// Prepare test user
-	u := app.User{
-		Name:     "test",
-		Email:    "test@example.com",
-		Password: "test",
+	s := New(newMockStore(), "test")
+	for _, c := range cases {
+		_, err := s.Login(c.user)
+		if err != c.err {
+			t.Errorf("Login(%#v) => unexpected error, want %v, got %v", c.user, c.err, err)
+		}
 	}
-
-	testUser, err = testService.Register(app.UserRequest{User: u})
-	if err != nil {
-		panic("failed to prepare test user: " + err.Error())
-	}
-
-	os.Exit(m.Run())
 }
