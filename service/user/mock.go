@@ -6,8 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var testService = New(newMockStore(), "test")
-
 type mockStore struct {
 	users     map[string]app.User
 	followers map[string][]string
