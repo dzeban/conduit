@@ -1,10 +1,13 @@
 package user
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 const testSecret = "test"
@@ -55,7 +58,33 @@ func TestLoginHandler(t *testing.T) {
 				t.Errorf("unexpected status, want %d, got %d", c.status, rr.Code)
 				t.Error(rr.Body.String())
 			}
+
+			if rr.Code == http.StatusOK {
+				checkToken(rr.Body.Bytes(), t)
+			}
 		})
+	}
+}
+
+func checkToken(body []byte, t *testing.T) {
+	type resp struct {
+		User struct {
+			Token string `json:"token"`
+		} `json:"user"`
+	}
+
+	var r resp
+	err := json.Unmarshal(body, &r)
+	if err != nil {
+		t.Errorf("failed to unmarshal json: %s", err)
+	}
+
+	_, err = jwt.Parse(r.User.Token, func(token *jwt.Token) (interface{}, error) {
+		return []byte(testSecret), nil
+	})
+
+	if err != nil {
+		t.Errorf("invalid token '%s': %s", r.User.Token, err)
 	}
 }
 
