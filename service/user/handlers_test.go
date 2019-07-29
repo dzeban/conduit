@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -142,95 +143,75 @@ func checkToken(body []byte, t *testing.T) {
 	}
 }
 
-// func TestHandleUserGet(t *testing.T) {
-// 	response, err := registerTestUser("testUserGet@example.com", "testUserGet", "password")
-// 	if err != nil {
-// 		t.Errorf("failed to register test user")
-// 	}
+func TestHandleUserGet(t *testing.T) {
+	cases := []struct {
+		name   string
+		auth   string
+		status int
+	}{
+		{
+			"null",
+			"",
+			http.StatusBadRequest,
+		},
+		{
+			"empty",
+			"Token ",
+			http.StatusBadRequest,
+		},
+		{
+			// no sub claim
+			"nosub",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
+			http.StatusUnauthorized,
+		},
+		{
+			// empty sub claim
+			"emptysub",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
+			http.StatusUnauthorized,
+		},
+		{
+			// email is nosuchuser@example.com
+			"notfound",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20ifQ.7Ckyqr4bsJRSSsEjRcNmskSNqhhPQkqBi2huaFX9MRY",
+			http.StatusNotFound,
+		},
+		{
+			// email is test@example.com
+			"valid",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			http.StatusOK,
+		},
+	}
 
-// 	// Get user
-// 	req, err := http.NewRequest("GET", testServer.URL+"/users/", nil)
-// 	if err != nil {
-// 		t.Errorf("failed to create request")
-// 	}
-// 	req.Header.Add("Authorization", fmt.Sprintf("Token %s", response.User.Token))
+	s := New(newMockStore(), testSecret)
 
-// 	resp, err := http.DefaultClient.Do(req)
-// 	if err != nil {
-// 		t.Error("failed to make a request:", err)
-// 	}
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
 
-// 	body, _ := ioutil.ReadAll(resp.Body)
-// 	resp.Body.Close()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", ts.URL+"/users/", nil)
+			if err != nil {
+				t.Fatalf("failed to create request: %s", err)
+			}
+			req.Header.Add("Authorization", c.auth)
 
-// 	if resp.StatusCode != http.StatusOK {
-// 		t.Errorf("invalid status code: expected %d, got %d", http.StatusOK, resp.StatusCode)
-// 	}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("failed to make a request: %s", err)
+			}
+			defer resp.Body.Close()
 
-// 	err = checkResponse(response, body)
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
-// }
-
-// func TestHandleUserGetAuth(t *testing.T) {
-// 	tests := []struct {
-// 		name       string
-// 		authHeader string
-// 		status     int
-// 	}{
-// 		{
-// 			name:       "null",
-// 			authHeader: "",
-// 			status:     http.StatusBadRequest,
-// 		},
-// 		{
-// 			name:       "empty",
-// 			authHeader: "Token ",
-// 			status:     http.StatusBadRequest,
-// 		},
-// 		{
-// 			// no sub claim
-// 			name:       "nosub",
-// 			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
-// 			status:     http.StatusUnauthorized,
-// 		},
-// 		{
-// 			// empty sub claim
-// 			name:       "emptysub",
-// 			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
-// 			status:     http.StatusUnauthorized,
-// 		},
-// 		{
-// 			// email is nosuchuser@example.com
-// 			name:       "notfound",
-// 			authHeader: "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20ifQ.7Ckyqr4bsJRSSsEjRcNmskSNqhhPQkqBi2huaFX9MRY",
-// 			status:     http.StatusNotFound,
-// 		},
-// 	}
-
-// 	for _, test := range tests {
-// 		t.Run(test.name, func(t *testing.T) {
-// 			req, err := http.NewRequest("GET", testServer.URL+"/users/", nil)
-// 			if err != nil {
-// 				t.Errorf("failed to create request")
-// 			}
-// 			req.Header.Add("Authorization", test.authHeader)
-
-// 			resp, err := http.DefaultClient.Do(req)
-// 			if err != nil {
-// 				t.Error("failed to make a request:", err)
-// 			}
-// 			defer resp.Body.Close()
-
-// 			body, _ := ioutil.ReadAll(resp.Body)
-// 			if test.status != resp.StatusCode {
-// 				t.Errorf("invalid status code: expected %d, got %d", test.status, resp.StatusCode)
-// 				t.Error(string(body))
-// 			}
-// 		})
-// 	}
-// }
+			body, _ := ioutil.ReadAll(resp.Body)
+			if resp.StatusCode != c.status {
+				t.Errorf("invalid status code: want %d, got %d", c.status, resp.StatusCode)
+				t.Error(string(body))
+			}
+		})
+	}
+}
 
 // // registerTestUser registers new user and obtains token
 // func registerTestUser(email, username, password string) (*userResponse, error) {
