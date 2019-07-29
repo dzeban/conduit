@@ -115,20 +115,33 @@ func TestHandleUserRegister(t *testing.T) {
 
 	s := New(newMockStore(), testSecret)
 
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	url := ts.URL + "/users/"
+
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-
-			req := httptest.NewRequest("POST", "/", strings.NewReader(c.body))
-			s.HandleUserRegister(rr, req)
-
-			if rr.Code != c.status {
-				t.Errorf("unexpected status, want %d, got %d", c.status, rr.Code)
-				t.Error(rr.Body.String())
+			req, err := http.NewRequest("POST", url, strings.NewReader(c.body))
+			if err != nil {
+				t.Fatalf("failed to create request: %s", err)
 			}
 
-			if rr.Code == http.StatusOK {
-				checkToken(rr.Body.Bytes(), t)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("failed to make a request: %s", err)
+			}
+			defer resp.Body.Close()
+
+			body, _ := ioutil.ReadAll(resp.Body)
+
+			if resp.StatusCode != c.status {
+				t.Errorf("unexpected status, want %d, got %d", c.status, resp.StatusCode)
+				t.Error(string(body))
+			}
+
+			if resp.StatusCode == http.StatusOK {
+				checkToken(body, t)
 			}
 		})
 	}
