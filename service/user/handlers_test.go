@@ -239,26 +239,90 @@ func TestHandleUserGet(t *testing.T) {
 	}
 }
 
-// // registerTestUser registers new user and obtains token
-// func registerTestUser(email, username, password string) (*userResponse, error) {
-// 	userData := fmt.Sprintf(`{"user":{"email":"%s","username": "%s", "password":"%s"}}`, email, username, password)
-// 	resp, err := http.Post(testServer.URL+"/users/", "application/json", strings.NewReader(userData))
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "failed to make user register request")
-// 	}
+func TestHandleUserUpdate(t *testing.T) {
+	cases := []struct {
+		name   string
+		auth   string
+		body   string
+		status int
+	}{
+		{
+			"null",
+			"",
+			`{}`,
+			http.StatusBadRequest,
+		},
+		{
+			"empty",
+			"Token ",
+			`{}`,
+			http.StatusBadRequest,
+		},
+		{
+			// no sub claim
+			"nosub",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
+			`{}`,
+			http.StatusUnauthorized,
+		},
+		{
+			// empty sub claim
+			"emptysub",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
+			`{}`,
+			http.StatusUnauthorized,
+		},
+		{
+			"invalid",
+			// email is test@example.com
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			`{}`,
+			http.StatusBadRequest,
+		},
+		{
+			"other",
+			// email is test@example.com
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			`{"user": {"email": "other@example.com", "password":"evil"}}`,
+			http.StatusForbidden,
+		},
+		{
+			"valid",
+			// email is test@example.com
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			`{"user": {"username": "admin"}}`,
+			http.StatusOK,
+		},
+	}
 
-// 	if resp.StatusCode != http.StatusCreated {
-// 		return nil, fmt.Errorf("invalid status code: expected %d, got %d", http.StatusCreated, resp.StatusCode)
-// 	}
+	s := New(newMockStore(), testSecret)
 
-// 	body, _ := ioutil.ReadAll(resp.Body)
-// 	resp.Body.Close()
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
 
-// 	var response userResponse
-// 	err = json.Unmarshal(body, &response)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "failed to unmarshal response")
-// 	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req, err := http.NewRequest("PUT", ts.URL+"/users/", strings.NewReader(c.body))
+			if err != nil {
+				t.Fatalf("failed to create request: %s", err)
+			}
+			req.Header.Add("Authorization", c.auth)
 
-// 	return &response, nil
-// }
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("failed to make a request: %s", err)
+			}
+			defer resp.Body.Close()
+
+			body, _ := ioutil.ReadAll(resp.Body)
+			if resp.StatusCode != c.status {
+				t.Errorf("invalid status code: want %d, got %d", c.status, resp.StatusCode)
+				t.Error(string(body))
+			}
+
+			if resp.StatusCode == http.StatusOK {
+				checkToken(body, t)
+			}
+		})
+	}
+}
