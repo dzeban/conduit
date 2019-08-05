@@ -24,6 +24,23 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
+	val := r.Context().Value("email")
+	if val == nil {
+		http.Error(w, ServerError(nil, "no email in context"), http.StatusUnauthorized)
+		return
+	}
+
+	email, ok := val.(string)
+	if !ok {
+		http.Error(w, ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	if email == "" {
+		http.Error(w, ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
 	var req app.UserRequest
@@ -36,12 +53,6 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 	err = req.User.ValidateForUpdate()
 	if err != nil {
 		http.Error(w, ServerError(err, "failed to validate request"), http.StatusBadRequest)
-		return
-	}
-
-	email, ok := r.Context().Value("email").(string)
-	if !ok {
-		http.Error(w, ServerError(err, "no email in context"), http.StatusUnauthorized)
 		return
 	}
 
