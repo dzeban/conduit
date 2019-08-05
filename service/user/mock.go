@@ -41,7 +41,28 @@ func (s mockStore) Add(user app.User) error {
 }
 
 func (s mockStore) Update(email string, user app.User) error {
-	s.users[email] = user
+	u, err := s.Get(email)
+	if err != nil {
+		return err
+	}
+
+	if user.Name != "" {
+		u.Name = user.Name
+	}
+
+	if user.Password != "" {
+		u.Password = user.Password
+	}
+
+	if user.Bio != "" {
+		u.Bio = user.Bio
+	}
+
+	if user.Image != "" {
+		u.Image = user.Image
+	}
+
+	s.users[email] = *u
 	return nil
 }
 
