@@ -69,6 +69,40 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+func TestUpdate(t *testing.T) {
+	cases := []struct {
+		user   app.User
+		update app.User
+		want   app.User
+	}{
+		{
+			app.User{Email: "passwordUpdate@example.com", Password: "old"},
+			app.User{Password: "new"},
+			app.User{Email: "passwordUpdate@example.com", Password: "new"},
+		},
+		{
+			app.User{Email: "fieldsUpdate@example.com", Password: "password"},
+			app.User{Name: "name", Bio: "bio", Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="},
+			app.User{Email: "fieldsUpdate@example.com", Password: "password", Name: "name", Bio: "bio", Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="},
+		},
+	}
+
+	s := New(newMockStore(), testSecret)
+	for _, c := range cases {
+		_, err := s.Register(c.user)
+		if err != nil {
+			t.Errorf("Register(%#v) => unexpected error %v", c.user, err)
+		}
+
+		u, err := s.Update(c.user.Email, c.update)
+		if err != nil {
+			t.Errorf("Update(%v, %#v) => unexpected error %v", c.user.Email, c.user, err)
+		}
+
+		checkUser(c.want, *u, t)
+	}
+}
+
 func checkUser(want, got app.User, t *testing.T) {
 	// First, check passwords
 	// want has plaintext password, got has hashed password
