@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
@@ -12,13 +12,13 @@ import (
 // Service provides a service for interacting with user accounts
 type Service struct {
 	store  app.UserStore
-	router *mux.Router
+	router *chi.Mux
 	secret []byte
 }
 
 // New is a constructor for a Service
 func New(store app.UserStore, secret string) *Service {
-	router := mux.NewRouter().StrictSlash(true)
+	router := chi.NewRouter()
 
 	s := &Service{
 		store:  store,
@@ -26,14 +26,14 @@ func New(store app.UserStore, secret string) *Service {
 		secret: []byte(secret),
 	}
 
-	router.HandleFunc("/users/", s.HandleUserRegister).Methods("POST")
-	router.HandleFunc("/users/login", s.HandleUserLogin).Methods("POST")
-	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserGet)).Methods("GET")
-	router.HandleFunc("/users/", s.jwtAuthHandler(s.HandleUserUpdate)).Methods("PUT")
+	router.Post("/", s.HandleUserRegister)
+	router.Post("/login", s.HandleUserLogin)
+	router.Get("/", s.jwtAuthHandler(s.HandleUserGet))
+	router.Put("/", s.jwtAuthHandler(s.HandleUserUpdate))
 
-	router.HandleFunc("/profiles/{username}", s.HandleProfileGet).Methods("GET")
-	router.HandleFunc("/profiles/{username}/follow", s.jwtAuthHandler(s.HandleProfileFollow)).Methods("POST")
-	router.HandleFunc("/profiles/{username}/unfollow", s.jwtAuthHandler(s.HandleProfileUnfollow)).Methods("POST")
+	router.Get("/{username}", s.HandleProfileGet)
+	router.Post("/{username}/follow", s.jwtAuthHandler(s.HandleProfileFollow))
+	router.Post("/{username}/unfollow", s.jwtAuthHandler(s.HandleProfileUnfollow))
 
 	return s
 }

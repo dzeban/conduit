@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // ServeHTTP implements http.handler interface and uses router ServeHTTP method
@@ -34,8 +34,8 @@ func (s *Service) HandleArticles(w http.ResponseWriter, r *http.Request) {
 
 // HandleArticle is a handler for /article/{slug} API endpoint
 func (s *Service) HandleArticle(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	slug := vars["slug"]
+	slug := chi.URLParam(r, "slug")
+
 	article, err := s.Get(slug)
 	if err != nil {
 		// http.Error(w, ServerError(err, "failed to get article"), http.StatusInternalServerError)

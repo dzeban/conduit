@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
@@ -229,8 +229,7 @@ func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username := chi.URLParam(r, "username")
 
 	profile, err := s.store.Profile(username)
 	if err == app.ErrUserNotFound {
@@ -251,8 +250,7 @@ func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username := chi.URLParam(r, "username")
 
 	email, ok := r.Context().Value("email").(string)
 	if !ok {
@@ -298,8 +296,7 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username := chi.URLParam(r, "username")
 
 	email, ok := r.Context().Value("email").(string)
 	if !ok {

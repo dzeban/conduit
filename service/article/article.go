@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -17,7 +17,7 @@ import (
 // It serves articles from Postgres
 type Service struct {
 	db     *sqlx.DB
-	router *mux.Router
+	router *chi.Mux
 }
 
 // New creates new Article service backed by Postgres
@@ -27,11 +27,11 @@ func NewService(DSN string) (*Service, error) {
 		return nil, errors.Wrap(err, "failed to connect to articles db")
 	}
 
-	router := mux.NewRouter().StrictSlash(true)
+	router := chi.NewRouter()
 
 	s := &Service{db: db, router: router}
-	router.HandleFunc("/articles/", s.HandleArticles).Methods("GET")
-	router.HandleFunc("/articles/{slug}", s.HandleArticle).Methods("GET")
+	router.Get("/articles/", s.HandleArticles)
+	router.Get("/articles/{slug}", s.HandleArticle)
 
 	return s, nil
 }

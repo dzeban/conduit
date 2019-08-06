@@ -51,7 +51,7 @@ func TestLoginHandler(t *testing.T) {
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()
 
-	url := ts.URL + "/users/login"
+	url := ts.URL + "/login"
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -118,11 +118,9 @@ func TestHandleUserRegister(t *testing.T) {
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()
 
-	url := ts.URL + "/users/"
-
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			req, err := http.NewRequest("POST", url, strings.NewReader(c.body))
+			req, err := http.NewRequest("POST", ts.URL, strings.NewReader(c.body))
 			if err != nil {
 				t.Fatalf("failed to create request: %s", err)
 			}
@@ -218,7 +216,7 @@ func TestHandleUserGet(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			req, err := http.NewRequest("GET", ts.URL+"/users/", nil)
+			req, err := http.NewRequest("GET", ts.URL, nil)
 			if err != nil {
 				t.Fatalf("failed to create request: %s", err)
 			}
@@ -302,7 +300,7 @@ func TestHandleUserUpdate(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			req, err := http.NewRequest("PUT", ts.URL+"/users/", strings.NewReader(c.body))
+			req, err := http.NewRequest("PUT", ts.URL, strings.NewReader(c.body))
 			if err != nil {
 				t.Fatalf("failed to create request: %s", err)
 			}

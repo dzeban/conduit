@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/koding/multiconfig"
 
 	"github.com/dzeban/conduit/app"
@@ -28,7 +30,14 @@ func main() {
 	var config Config
 	multiconfig.New().MustLoad(&config)
 
-	router := mux.NewRouter()
+	router := chi.NewRouter()
+
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.Timeout(60 * time.Second))
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Server.Port),
 		Handler: router,
@@ -47,9 +56,9 @@ func main() {
 	}
 
 	// Setup API endpoints
-	router.PathPrefix("/articles").Handler(articleService)
-	router.PathPrefix("/users").Handler(userService)
-	router.PathPrefix("/profiles").Handler(userService)
+	router.Mount("/articles", articleService)
+	router.Mount("/users", userService)
+	router.Mount("/profiles", userService)
 
 	log.Println("start listening on", server.Addr)
 	log.Fatal(server.ListenAndServe())
