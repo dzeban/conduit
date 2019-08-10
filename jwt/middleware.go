@@ -66,10 +66,7 @@ func parseJWTClaimsFromHeader(header string, secret []byte) (map[string]interfac
 		return nil, fmt.Errorf("invalid auth header format, expected Token <token>, got %#v", header)
 	}
 
-	token, err := jwt.Parse(tokenVals[1], func(token *jwt.Token) (interface{}, error) {
-		return secret, nil
-	})
-
+	token, err := Parse(tokenVals[1], secret)
 	if err != nil {
 		return nil, errors.Wrap(err, "jwt parsing error")
 	}

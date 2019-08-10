@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dzeban/conduit/jwt"
 )
 
 const testSecret = "test"
@@ -158,10 +158,7 @@ func checkToken(body []byte, t *testing.T) {
 		t.Errorf("failed to unmarshal json: %s", err)
 	}
 
-	_, err = jwt.Parse(r.User.Token, func(token *jwt.Token) (interface{}, error) {
-		return []byte(testSecret), nil
-	})
-
+	_, err = jwt.Parse(r.User.Token, []byte(testSecret))
 	if err != nil {
 		t.Errorf("invalid token '%s': %s", r.User.Token, err)
 	}

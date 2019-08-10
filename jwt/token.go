@@ -18,3 +18,9 @@ func New(email string, secret []byte) (string, error) {
 
 	return tokenString, nil
 }
+
+func Parse(token string, secret []byte) (*jwt.Token, error) {
+	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+}
