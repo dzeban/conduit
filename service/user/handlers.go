@@ -344,8 +344,8 @@ func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) 
 // jwtAuthHandler is a middleware that wraps next handler func with JWT token
 // parsing and validation. It also stores authenticated user email into the
 // context.
-func (s *Service) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *Service) jwtAuthHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader, ok := r.Header["Authorization"]
 		if !ok {
 			http.Error(w, ServerError(ErrJWTNoAuthorizationHeader, ""), http.StatusUnauthorized)
@@ -372,8 +372,8 @@ func (s *Service) jwtAuthHandler(next http.HandlerFunc) http.HandlerFunc {
 		// Store auth subject (email) to the context
 		authCtx := context.WithValue(r.Context(), "email", sub)
 
-		next(w, r.WithContext(authCtx))
-	}
+		next.ServeHTTP(w, r.WithContext(authCtx))
+	})
 }
 
 func (s *Service) loggerHandler(next http.HandlerFunc) http.HandlerFunc {

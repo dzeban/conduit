@@ -26,14 +26,20 @@ func New(store app.UserStore, secret string) *Service {
 		secret: []byte(secret),
 	}
 
+	// Unauthenticated endpoints
 	router.Post("/", s.HandleUserRegister)
 	router.Post("/login", s.HandleUserLogin)
-	router.Get("/", s.jwtAuthHandler(s.HandleUserGet))
-	router.Put("/", s.jwtAuthHandler(s.HandleUserUpdate))
-
 	router.Get("/{username}", s.HandleProfileGet)
-	router.Post("/{username}/follow", s.jwtAuthHandler(s.HandleProfileFollow))
-	router.Post("/{username}/unfollow", s.jwtAuthHandler(s.HandleProfileUnfollow))
+
+	// Endpoints protected by JWT auth
+	router.Group(func(r chi.Router) {
+		r.Use(s.jwtAuthHandler)
+
+		r.Get("/", s.HandleUserGet)
+		r.Put("/", s.HandleUserUpdate)
+		r.Post("/{username}/follow", s.HandleProfileFollow)
+		r.Post("/{username}/unfollow", s.HandleProfileUnfollow)
+	})
 
 	return s
 }
