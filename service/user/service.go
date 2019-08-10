@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/jwt"
 	"github.com/dzeban/conduit/password"
 	"github.com/dzeban/conduit/store/user"
 )
@@ -33,7 +34,7 @@ func New(store app.UserStore, secret string) *Service {
 
 	// Endpoints protected by JWT auth
 	router.Group(func(r chi.Router) {
-		r.Use(s.jwtAuthHandler)
+		r.Use(jwt.Auth(s.secret))
 
 		r.Get("/", s.HandleUserGet)
 		r.Put("/", s.HandleUserUpdate)
