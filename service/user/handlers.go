@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/jwt"
 )
 
 // ServeHTTP implements http.handler interface and uses router ServeHTTP method
@@ -63,18 +63,13 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new JWT because user was updated
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":    user.Email,
-		"signed": true,
-	})
-
-	tokenString, err := token.SignedString(s.secret)
+	token, err := jwt.New(user.Email, s.secret)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to create token"), http.StatusInternalServerError)
+		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return
 	}
 
-	user.Token = tokenString
+	user.Token = token
 
 	// Prepare and send reply with user data, including token
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
@@ -113,18 +108,13 @@ func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":    user.Email,
-		"signed": true,
-	})
-
-	tokenString, err := token.SignedString(s.secret)
+	token, err := jwt.New(user.Email, s.secret)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to create token"), http.StatusInternalServerError)
+		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return
 	}
 
-	user.Token = tokenString
+	user.Token = token
 
 	// Prepare and send reply with user data, including token
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
@@ -160,18 +150,13 @@ func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":    user.Email,
-		"signed": true,
-	})
-
-	tokenString, err := token.SignedString(s.secret)
+	token, err := jwt.New(user.Email, s.secret)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to create token"), http.StatusInternalServerError)
+		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return
 	}
 
-	user.Token = tokenString
+	user.Token = token
 
 	// Prepare and send reply with user data, including token
 	jsonUser, err := json.Marshal(app.UserRequest{User: *user})
