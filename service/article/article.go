@@ -22,8 +22,8 @@ func New(store app.ArticleStore) *Service {
 	s := &Service{store: store, router: router}
 
 	// Unauthenticated endpoints
-	router.Get("/", s.HandleArticles)
-	router.Get("/{slug}", s.HandleArticle)
+	router.Get("/", s.HandleArticleList)
+	router.Get("/{slug}", s.HandleArticleGet)
 
 	return s
 }

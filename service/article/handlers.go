@@ -16,7 +16,7 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleArticles is a handler for /articles API endpoint
-func (s *Service) HandleArticles(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleArticleList(w http.ResponseWriter, r *http.Request) {
 	articles, err := s.List(20)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to list articles"), http.StatusInternalServerError)
@@ -33,7 +33,7 @@ func (s *Service) HandleArticles(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleArticle is a handler for /article/{slug} API endpoint
-func (s *Service) HandleArticle(w http.ResponseWriter, r *http.Request) {
+func (s *Service) HandleArticleGet(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 
 	article, err := s.Get(slug)
