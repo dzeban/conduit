@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -47,12 +48,24 @@ func (s PostgresStore) List(n int) ([]app.Article, error) {
 	}
 
 	var articles []app.Article
+
+	var title, slug string
+	var description, body sql.NullString
+	var created, updated time.Time
 	for rows.Next() {
-		var article app.Article
-		err = rows.StructScan(&article)
+		err = rows.Scan(&slug, &title, &description, &body, &created, &updated)
 		if err != nil {
-			// TODO: log.Println(err)
+			log.Println(err)
 			continue
+		}
+
+		article := app.Article{
+			Slug:        slug,
+			Title:       title,
+			Description: description.String,
+			Body:        body.String,
+			Created:     created,
+			Updated:     updated,
 		}
 
 		articles = append(articles, article)
@@ -65,7 +78,6 @@ func (s PostgresStore) List(n int) ([]app.Article, error) {
 func (s PostgresStore) Get(slug string) (*app.Article, error) {
 	queryArticle := `
 		SELECT
-			slug,
 			title,
 			description,
 			body,
@@ -79,12 +91,24 @@ func (s PostgresStore) Get(slug string) (*app.Article, error) {
 
 	row := s.db.QueryRowx(queryArticle, slug)
 
-	var article app.Article
-	err := row.StructScan(&article)
+	var title string
+	var description, body sql.NullString
+	var created, updated time.Time
+
+	err := row.Scan(&title, &description, &body, &created, &updated)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "failed to query article")
+	}
+
+	article := app.Article{
+		Slug:        slug,
+		Title:       title,
+		Description: description.String,
+		Body:        body.String,
+		Created:     created,
+		Updated:     updated,
 	}
 
 	return &article, nil
