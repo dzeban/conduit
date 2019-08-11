@@ -1,103 +1,46 @@
 package article
 
 import (
-	"database/sql"
-	"time"
-
 	"github.com/go-chi/chi"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
-	"github.com/dzeban/conduit/db"
+	"github.com/dzeban/conduit/store/article"
 )
 
 // Service implements app.ArticleService interface
 // It serves articles from Postgres
 type Service struct {
-	db     *sqlx.DB
+	store  app.ArticleStore
 	router *chi.Mux
 }
 
 // New creates new Article service backed by Postgres
-func NewService(DSN string) (*Service, error) {
-	db, err := db.ConnectLoop("postgres", DSN, 1*time.Minute)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to articles db")
-	}
-
+func New(store app.ArticleStore) *Service {
 	router := chi.NewRouter()
 
-	s := &Service{db: db, router: router}
+	s := &Service{store: store, router: router}
+
+	// Unauthenticated endpoints
 	router.Get("/articles/", s.HandleArticles)
 	router.Get("/articles/{slug}", s.HandleArticle)
 
-	return s, nil
+	return s
 }
 
-// List returns n articles from Postgres
-func (s *Service) List(n int) ([]app.Article, error) {
-	queryArticles := `
-		SELECT
-			slug,
-			title,
-			description,
-			body,
-			created,
-			updated
-		FROM
-			articles
-		ORDER BY
-			created DESC
-		LIMIT $1
-	`
-
-	rows, err := s.db.Queryx(queryArticles, n)
+func NewFromDSN(DSN string) (*Service, error) {
+	store, err := article.New(DSN)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to query articles")
+		return nil, errors.Wrapf(err, "failed to create article store for DSN %s", DSN)
 	}
 
-	var articles []app.Article
-	for rows.Next() {
-		var article app.Article
-		err = rows.StructScan(&article)
-		if err != nil {
-			// TODO: log.Println(err)
-			continue
-		}
-
-		articles = append(articles, article)
-	}
-
-	return articles, nil
+	return New(store), nil
 }
 
-// Get returns a single article by its slug
-func (s *Service) Get(slug string) (*app.Article, error) {
-	queryArticle := `
-		SELECT
-			slug,
-			title,
-			description,
-			body,
-			created,
-			updated
-		FROM
-			articles
-		WHERE
-			slug = $1
-	`
+func (s Service) List(n int) ([]app.Article, error) {
+	return s.store.List(n)
+}
 
-	row := s.db.QueryRowx(queryArticle, slug)
-
-	var article app.Article
-	err := row.StructScan(&article)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "failed to query article")
-	}
-
-	return &article, nil
+func (s Service) Get(slug string) (*app.Article, error) {
+	return s.store.Get(slug)
 }

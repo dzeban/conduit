@@ -14,8 +14,8 @@ type Article struct {
 	Updated     time.Time `json:"updated"`
 }
 
-// ArticleService defines an interface to work with articles
-type ArticleService interface {
+// ArticleStore defines an interface to work with articles
+type ArticleStore interface {
 	List(n int) ([]Article, error)
 	Get(slug string) (*Article, error)
 }

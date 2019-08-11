@@ -45,14 +45,14 @@ func main() {
 
 	log.Printf("using config: %#v\n", config)
 
-	articleService, err := article.NewService(config.Articles.DSN)
+	articleService, err := article.NewFromDSN(config.Articles.DSN)
 	if err != nil {
-		log.Fatal("cannot create articles service: ", err)
+		log.Fatal("cannot create article service: ", err)
 	}
 
 	userService, err := user.NewFromDSN(config.Users.DSN, config.Users.Secret)
 	if err != nil {
-		log.Fatal("cannot create users service: ", err)
+		log.Fatal("cannot create user service: ", err)
 	}
 
 	// Setup API endpoints
