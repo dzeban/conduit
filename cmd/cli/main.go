@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/ishell"
 	"github.com/abiosoft/readline"
 
+	"github.com/dzeban/conduit/cmd/cli/article"
 	"github.com/dzeban/conduit/cmd/cli/profile"
 	"github.com/dzeban/conduit/cmd/cli/state"
 	"github.com/dzeban/conduit/cmd/cli/user"
@@ -82,6 +83,29 @@ func main() {
 		})
 
 		cli.AddCmd(profileCmd)
+	}
+
+	// article commands
+	{
+		articleCmd := &ishell.Cmd{
+			Name: "article",
+			Help: "Interact with articles - get, list, etc",
+		}
+
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "get",
+			Help:                "Get article by slug",
+			Func:                article.Get,
+			CompleterWithPrefix: OptsCompleter(article.GetOpts),
+		})
+
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name: "list",
+			Help: "List articles",
+			Func: article.List,
+		})
+
+		cli.AddCmd(articleCmd)
 	}
 
 	cli.SetHistoryPath(".conduit_history")
