@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
@@ -26,23 +27,20 @@ func New(DSN string) (app.ArticleStore, error) {
 }
 
 // List returns n articles from Postgres
-func (s PostgresStore) List(n int) ([]app.Article, error) {
-	queryArticles := `
-		SELECT
-			slug,
-			title,
-			description,
-			body,
-			created,
-			updated
-		FROM
-			articles
-		ORDER BY
-			created DESC
-		LIMIT $1
-	`
+func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.Select("slug, title, description, body, created, updated").
+			From("articles").
+			Where(f.Map()).
+			Limit(f.Limit).
+			Offset(f.Offset).
+			ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build select query")
+	}
 
-	rows, err := s.db.Queryx(queryArticles, n)
+	rows, err := s.db.Queryx(query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query articles")
 	}

@@ -37,8 +37,8 @@ func NewFromDSN(DSN string) (*Service, error) {
 	return New(store), nil
 }
 
-func (s Service) List(n int) ([]app.Article, error) {
-	return s.store.List(n)
+func (s Service) List(f app.ArticleListFilter) ([]app.Article, error) {
+	return s.store.List(f)
 }
 
 func (s Service) Get(slug string) (*app.Article, error) {

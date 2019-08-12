@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 
@@ -15,9 +16,41 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
+func parseArticleListFilter(r *http.Request) app.ArticleListFilter {
+	// Create filter with default values
+	f := app.NewArticleListFilter()
+
+	// Fill filter struct from query params
+	q := r.URL.Query()
+
+	s := q.Get("limit")
+	if s != "" {
+		val, err := strconv.ParseUint(s, 10, 64)
+		// Ignore parsing error but set only if parsed
+		if err == nil {
+			f.Limit = val
+		}
+	}
+
+	s = q.Get("offset")
+	if s != "" {
+		val, err := strconv.ParseUint(s, 10, 64)
+		// Ignore parsing error but set only if parsed
+		if err == nil {
+			f.Offset = val
+		}
+	}
+
+	f.Username = q.Get("author")
+
+	return f
+}
+
 // HandleArticles is a handler for /articles API endpoint
 func (s *Service) HandleArticleList(w http.ResponseWriter, r *http.Request) {
-	articles, err := s.List(20)
+	f := parseArticleListFilter(r)
+
+	articles, err := s.List(f)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to list articles"), http.StatusInternalServerError)
 		return

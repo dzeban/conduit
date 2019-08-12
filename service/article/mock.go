@@ -29,13 +29,13 @@ func (s mockStore) Get(slug string) (*app.Article, error) {
 	return &a, nil
 }
 
-func (s mockStore) List(n int) ([]app.Article, error) {
-	i := 0
+func (s mockStore) List(f app.ArticleListFilter) ([]app.Article, error) {
+	i := uint64(0)
 	var list []app.Article
 	for _, v := range s.articles {
 		list = append(list, v)
 		i++
-		if i >= n {
+		if i >= f.Limit {
 			break
 		}
 	}
