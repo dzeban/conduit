@@ -2,9 +2,9 @@ package user
 
 import (
 	"database/sql"
-	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
@@ -82,64 +82,23 @@ func (s PostgresStore) Add(user app.User) error {
 
 // Update modifies user by email and return updated user object
 func (s PostgresStore) Update(email string, user app.User) error {
-	query, args, err := buildUpdateUserQuery(s.db, &user)
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.Update("users").
+			SetMap(user.Map()).
+			Where(sq.Eq{"email": email}).
+			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build update query")
 	}
 
 	// Execute update.
-	// args are created from user struct and used in SET expressions for actual
-	// update. email is used in WHERE clause as search condition.
-	args = append(args, email)
 	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute update query")
 	}
 
 	return nil
-}
-
-// buildUpdateUserQuery constructs update query from non-nil field of User
-// It returns the prebuilt query and user args for binding
-func buildUpdateUserQuery(db *sqlx.DB, user *app.User) (string, []interface{}, error) {
-	// Check for empty struct
-	if *user == (app.User{}) {
-		return "", nil, errors.New("empty user struct")
-	}
-
-	query := "UPDATE users SET "
-	if user.Name != "" {
-		query += "name = :name, "
-	}
-	if user.Email != "" {
-		query += "email = :email, "
-	}
-	if user.Bio != "" {
-		query += "bio = :bio, "
-	}
-	if user.Image != "" {
-		query += "image = :image, "
-	}
-	if user.Password != "" {
-		query += "password = :password, "
-	}
-
-	// Cut last comma
-	query = strings.TrimSuffix(query, ", ")
-
-	// Convert to ? bindvars to append positional WHERE condition later
-	query, args, err := sqlx.Named(query, user)
-	if err != nil {
-		return "", nil, errors.Wrap(err, "failed to bind struct to query")
-	}
-
-	// Add condition using positional bindvars
-	query += " WHERE email = ?"
-
-	// Rebind to Postgres bindvars ($1, $2, etc.)
-	query = db.Rebind(query)
-
-	return query, args, nil
 }
 
 func (s PostgresStore) Profile(username string) (*app.Profile, error) {

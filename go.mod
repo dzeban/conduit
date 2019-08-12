@@ -2,6 +2,7 @@ module github.com/dzeban/conduit
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/Masterminds/squirrel v1.1.0
 	github.com/abiosoft/ishell v2.0.1-0.20190613190920-79d20b1325a4+incompatible
 	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
 	github.com/chzyer/logex v1.1.10 // indirect

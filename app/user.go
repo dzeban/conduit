@@ -56,6 +56,28 @@ func (u User) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (u User) Map() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	if u.Name != "" {
+		m["name"] = u.Name
+	}
+	if u.Email != "" {
+		m["email"] = u.Email
+	}
+	if u.Bio != "" {
+		m["bio"] = u.Bio
+	}
+	if u.Image != "" {
+		m["image"] = u.Image
+	}
+	if u.Password != "" {
+		m["password"] = u.Password
+	}
+
+	return m
+}
+
 // UserRequest represent a json structure used
 // in user serice requests and responses.
 type UserRequest struct {
