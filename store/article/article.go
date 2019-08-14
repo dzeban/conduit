@@ -111,3 +111,12 @@ func (s PostgresStore) Get(slug string) (*app.Article, error) {
 
 	return &article, nil
 }
+
+// Articles feed query
+// select * from articles a join users u on (a.author=u.name) where author in (select follows from followers where follower='test');
+
+// Articles list with following column
+// select a.title, a.slug, a.body, f.follows != '' as follows from articles a left join followers f on (a.author=f.follows) order by slug;
+
+// Articles list with following column and profile info
+// select a.title, a.slug, a.body, u.bio, f.follows != '' as follows from articles a join users u on (a.author=u.name) left join followers f on (u.name=f.follows)
