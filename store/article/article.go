@@ -29,9 +29,15 @@ func New(DSN string) (app.ArticleStore, error) {
 // List returns n articles from Postgres
 func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	// select a.title, a.slug, a.body, u.bio, f.follows != '' as follows from articles a join users u on (a.author=u.name) left join followers f on (u.name=f.follows)
 	query, args, err :=
-		psql.Select("slug, title, description, body, created, updated").
-			From("articles").
+		psql.Select(`
+				a.slug, a.title, a.description, a.body, a.created, a.updated,
+				a.author, u.bio, u.image, f.follows != '' as follows 
+			`).
+			From("articles a").
+			Join("users u on (a.author=u.name)").
+			LeftJoin("followers f on (u.name=f.follows)").
 			Where(f.Map()).
 			Limit(f.Limit).
 			Offset(f.Offset).
@@ -47,11 +53,15 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 
 	var articles []app.Article
 
-	var title, slug string
-	var description, body sql.NullString
+	var title, slug, author string
+	var description, body, bio, image sql.NullString
 	var created, updated time.Time
+	var follows sql.NullBool
 	for rows.Next() {
-		err = rows.Scan(&slug, &title, &description, &body, &created, &updated)
+		err = rows.Scan(
+			&slug, &title, &description, &body, &created, &updated,
+			&author, &bio, &image, &follows,
+		)
 		if err != nil {
 			log.Println(err)
 			continue
