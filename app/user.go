@@ -106,8 +106,8 @@ func (ur UserRequest) MarshalJSON() ([]byte, error) {
 type Profile struct {
 	Name      string `json:"username"`
 	Bio       string `json:"bio"`
-	Image     string `json:"image"`               // base64 encoded
-	Following bool   `json:"following,omitempty"` // set for authenticated users
+	Image     string `json:"image"`     // base64 encoded
+	Following bool   `json:"following"` // set for authenticated users
 }
 
 // ProfileResponse is a structure returned in profile handlers

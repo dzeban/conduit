@@ -12,6 +12,7 @@ type Article struct {
 	Body        string    `json:"body"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
+	Author      Profile   `json:"author"`
 }
 
 // ArticleStore defines an interface to work with articles

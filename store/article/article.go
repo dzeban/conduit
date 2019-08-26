@@ -29,11 +29,10 @@ func New(DSN string) (app.ArticleStore, error) {
 // List returns n articles from Postgres
 func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	// select a.title, a.slug, a.body, u.bio, f.follows != '' as follows from articles a join users u on (a.author=u.name) left join followers f on (u.name=f.follows)
 	query, args, err :=
 		psql.Select(`
 				a.slug, a.title, a.description, a.body, a.created, a.updated,
-				a.author, u.bio, u.image, f.follows != '' as follows 
+				a.author, u.bio, u.image, f.follows != '' as following
 			`).
 			From("articles a").
 			Join("users u on (a.author=u.name)").
@@ -53,14 +52,14 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 
 	var articles []app.Article
 
-	var title, slug, author string
+	var title, slug, authorName string
 	var description, body, bio, image sql.NullString
 	var created, updated time.Time
-	var follows sql.NullBool
+	var following sql.NullBool
 	for rows.Next() {
 		err = rows.Scan(
 			&slug, &title, &description, &body, &created, &updated,
-			&author, &bio, &image, &follows,
+			&authorName, &bio, &image, &following,
 		)
 		if err != nil {
 			log.Println(err)
@@ -74,6 +73,12 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 			Body:        body.String,
 			Created:     created,
 			Updated:     updated,
+			Author: app.Profile{
+				Name:      authorName,
+				Bio:       bio.String,
+				Image:     image.String,
+				Following: following.Bool,
+			},
 		}
 
 		articles = append(articles, article)
