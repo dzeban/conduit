@@ -41,7 +41,7 @@ func parseArticleListFilter(r *http.Request) app.ArticleListFilter {
 		}
 	}
 
-	f.Username = q.Get("author")
+	f.Author = q.Get("author")
 
 	return f
 }

@@ -31,8 +31,16 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.Select(`
-				a.slug, a.title, a.description, a.body, a.created, a.updated,
-				a.author, u.bio, u.image, f.follows != '' as following
+				a.slug as slug,
+				a.title as title,
+				a.description as description,
+				a.body as body,
+				a.created as created,
+				a.updated as updated,
+				a.author as author,
+				u.bio as bio,
+				u.image as image,
+				f.follows != '' as following
 			`).
 			From("articles a").
 			Join("users u on (a.author=u.name)").
