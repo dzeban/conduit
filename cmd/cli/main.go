@@ -100,9 +100,10 @@ func main() {
 		})
 
 		articleCmd.AddCmd(&ishell.Cmd{
-			Name: "list",
-			Help: "List articles",
-			Func: article.List,
+			Name:                "list",
+			Help:                "List articles",
+			Func:                article.List,
+			CompleterWithPrefix: OptsCompleter(article.ListOpts),
 		})
 
 		cli.AddCmd(articleCmd)
