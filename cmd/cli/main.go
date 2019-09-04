@@ -106,6 +106,13 @@ func main() {
 			CompleterWithPrefix: OptsCompleter(article.ListOpts),
 		})
 
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "feed",
+			Help:                "Feed of articles",
+			Func:                article.Feed,
+			CompleterWithPrefix: OptsCompleter(article.FeedOpts),
+		})
+
 		cli.AddCmd(articleCmd)
 	}
 
