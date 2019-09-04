@@ -79,7 +79,7 @@ func MakeRequestWithDump(method, URL string, data interface{}, params ...[]strin
 	return resp, body, nil
 }
 
-func MakeAuthorizedRequestWithDump(method, url string, data interface{}) (*http.Response, []byte, error) {
+func MakeAuthorizedRequestWithDump(method, URL string, data interface{}, params ...[]string) (*http.Response, []byte, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to marshal json")
@@ -87,7 +87,20 @@ func MakeAuthorizedRequestWithDump(method, url string, data interface{}) (*http.
 
 	bb := bytes.NewBuffer(b)
 
-	req, err := http.NewRequest(method, url, bb)
+	// Construct URL with query params
+	reqUrl, err := url.Parse(URL)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to parse url '%s'", URL)
+	}
+
+	queryParams := url.Values{}
+	for _, p := range params {
+		queryParams.Add(p[0], p[1])
+	}
+
+	reqUrl.RawQuery = queryParams.Encode()
+
+	req, err := http.NewRequest(method, reqUrl.String(), bb)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to create http request")
 	}
