@@ -13,13 +13,18 @@ import (
 type Service struct {
 	store  app.ArticleStore
 	router *chi.Mux
+	secret []byte
 }
 
 // New creates new Article service backed by Postgres
-func New(store app.ArticleStore) *Service {
+func New(store app.ArticleStore, secret string) *Service {
 	router := chi.NewRouter()
 
-	s := &Service{store: store, router: router}
+	s := &Service{
+		store:  store,
+		router: router,
+		secret: []byte(secret),
+	}
 
 	// Unauthenticated endpoints
 	router.Get("/", s.HandleArticleList)
@@ -28,13 +33,13 @@ func New(store app.ArticleStore) *Service {
 	return s
 }
 
-func NewFromDSN(DSN string) (*Service, error) {
+func NewFromDSN(DSN string, secret string) (*Service, error) {
 	store, err := article.New(DSN)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create article store for DSN %s", DSN)
 	}
 
-	return New(store), nil
+	return New(store, secret), nil
 }
 
 func (s Service) List(f app.ArticleListFilter) ([]app.Article, error) {

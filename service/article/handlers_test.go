@@ -7,8 +7,10 @@ import (
 	"testing"
 )
 
+const testSecret = "test"
+
 func TestHandleArticleList(t *testing.T) {
-	s := New(newMockStore())
+	s := New(newMockStore(), testSecret)
 
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()

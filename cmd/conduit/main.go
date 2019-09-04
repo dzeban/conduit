@@ -45,7 +45,7 @@ func main() {
 
 	log.Printf("using config: %#v\n", config)
 
-	articleService, err := article.NewFromDSN(config.Articles.DSN)
+	articleService, err := article.NewFromDSN(config.Articles.DSN, config.Articles.Secret)
 	if err != nil {
 		log.Fatal("cannot create article service: ", err)
 	}
