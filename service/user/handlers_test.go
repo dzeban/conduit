@@ -183,25 +183,31 @@ func TestHandleUserGet(t *testing.T) {
 		{
 			// no sub claim
 			"nosub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsIm5hbWUiOiJ0ZXN0In0.nZMAfsqMBNKSc7zD_F45icTTMolVMARBGOK13INJdtw",
+			http.StatusUnauthorized,
+		},
+		{
+			// no name claim
+			"noname",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
 			http.StatusUnauthorized,
 		},
 		{
 			// empty sub claim
 			"emptysub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiIsIm5hbWUiOiJ0ZXN0In0.24fNqWxFncXeBVi4gMk6wQJ9iSMrxZ9_CgvFNG8djno",
 			http.StatusUnauthorized,
 		},
 		{
 			// email is nosuchuser@example.com
 			"notfound",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20ifQ.7Ckyqr4bsJRSSsEjRcNmskSNqhhPQkqBi2huaFX9MRY",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20iLCJuYW1lIjoibm9zdWNodXNlciJ9.fPIrYSf8RF8rp_oI5RjkY68ex-mIz87erD0SqCiHR7I",
 			http.StatusNotFound,
 		},
 		{
 			// email is test@example.com
 			"valid",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
 			http.StatusOK,
 		},
 	}
@@ -270,21 +276,21 @@ func TestHandleUserUpdate(t *testing.T) {
 		{
 			"invalid",
 			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
 			`{}`,
 			http.StatusBadRequest,
 		},
 		{
 			"other",
 			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
 			`{"user": {"email": "other@example.com", "password":"evil"}}`,
 			http.StatusForbidden,
 		},
 		{
 			"valid",
 			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
+			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
 			`{"user": {"username": "admin"}}`,
 			http.StatusOK,
 		},

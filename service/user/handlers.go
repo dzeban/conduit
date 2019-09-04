@@ -63,7 +63,7 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new JWT because user was updated
-	token, err := jwt.New(user.Email, s.secret)
+	token, err := jwt.New(user, s.secret)
 	if err != nil {
 		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return
@@ -108,7 +108,7 @@ func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT
-	token, err := jwt.New(user.Email, s.secret)
+	token, err := jwt.New(user, s.secret)
 	if err != nil {
 		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return
@@ -150,7 +150,7 @@ func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT
-	token, err := jwt.New(user.Email, s.secret)
+	token, err := jwt.New(user, s.secret)
 	if err != nil {
 		http.Error(w, app.ServerError(err, ""), http.StatusInternalServerError)
 		return

@@ -15,6 +15,7 @@ var (
 	ErrJWTNoAuthorizationHeader = errors.New("no Authorization header")
 	ErrJWTNoSignedClaim         = errors.New("token does not have signed claim")
 	ErrJWTNoSubClaim            = errors.New("no sub claim")
+	ErrJWTNoNameClaim           = errors.New("no name claim")
 )
 
 func Auth(secret []byte) func(next http.Handler) http.Handler {
@@ -43,8 +44,15 @@ func Auth(secret []byte) func(next http.Handler) http.Handler {
 				return
 			}
 
+			var name interface{}
+			if name, ok = claims["name"]; !ok {
+				http.Error(w, app.ServerError(ErrJWTNoNameClaim, ""), http.StatusUnauthorized)
+				return
+			}
+
 			// Store auth subject (email) to the context
 			authCtx := context.WithValue(r.Context(), "email", sub)
+			authCtx = context.WithValue(authCtx, "username", name)
 
 			next.ServeHTTP(w, r.WithContext(authCtx))
 		}

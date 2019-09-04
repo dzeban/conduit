@@ -3,11 +3,14 @@ package jwt
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
 )
 
-func New(email string, secret []byte) (string, error) {
+func New(user *app.User, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":    email,
+		"sub":    user.Email,
+		"name":   user.Name,
 		"signed": true,
 	})
 
