@@ -28,9 +28,9 @@ type ArticleServiceConfig struct {
 }
 
 type ArticleListFilter struct {
-	Author string
-	Limit  uint64
-	Offset uint64
+	Username string
+	Limit    uint64
+	Offset   uint64
 }
 
 // NewArticleListFilter creates filter with default values
@@ -43,8 +43,8 @@ func NewArticleListFilter() ArticleListFilter {
 
 func (f ArticleListFilter) Map() map[string]interface{} {
 	m := make(map[string]interface{})
-	if f.Author != "" {
-		m["author"] = f.Author
+	if f.Username != "" {
+		m["username"] = f.Username
 	}
 
 	return m

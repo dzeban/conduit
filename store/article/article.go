@@ -37,7 +37,7 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 				a.body as body,
 				a.created as created,
 				a.updated as updated,
-				a.author as author,
+				a.author as username,
 				u.bio as bio,
 				u.image as image,
 				f.follows != '' as following
