@@ -42,3 +42,17 @@ func (s mockStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 
 	return list, nil
 }
+
+func (s mockStore) Feed(f app.ArticleListFilter) ([]app.Article, error) {
+	i := uint64(0)
+	var list []app.Article
+	for _, v := range s.articles {
+		list = append(list, v)
+		i++
+		if i >= f.Limit {
+			break
+		}
+	}
+
+	return list, nil
+}

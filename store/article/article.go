@@ -95,6 +95,75 @@ func (s PostgresStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 	return articles, nil
 }
 
+func (s PostgresStore) Feed(f app.ArticleListFilter) ([]app.Article, error) {
+	// Articles feed query
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.Select(`
+				a.slug as slug,
+				a.title as title,
+				a.description as description,
+				a.body as body,
+				a.created as created,
+				a.updated as updated,
+				a.author as username,
+				u.bio as bio,
+				u.image as image,
+				f.follows != '' as following
+			`).
+			From("articles a").
+			Join("users u on (a.author=u.name)").
+			LeftJoin("followers f on (u.name=f.follows)").
+			Where("f.follower=?", f.Username).
+			Limit(f.Limit).
+			Offset(f.Offset).
+			ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build select query")
+	}
+
+	rows, err := s.db.Queryx(query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query articles")
+	}
+
+	var articles []app.Article
+
+	var title, slug, authorName string
+	var description, body, bio, image sql.NullString
+	var created, updated time.Time
+	var following sql.NullBool
+	for rows.Next() {
+		err = rows.Scan(
+			&slug, &title, &description, &body, &created, &updated,
+			&authorName, &bio, &image, &following,
+		)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		article := app.Article{
+			Slug:        slug,
+			Title:       title,
+			Description: description.String,
+			Body:        body.String,
+			Created:     created,
+			Updated:     updated,
+			Author: app.Profile{
+				Name:      authorName,
+				Bio:       bio.String,
+				Image:     image.String,
+				Following: following.Bool,
+			},
+		}
+
+		articles = append(articles, article)
+	}
+
+	return articles, nil
+}
+
 // Get returns a single article by its slug
 func (s PostgresStore) Get(slug string) (*app.Article, error) {
 	queryArticle := `
@@ -134,12 +203,3 @@ func (s PostgresStore) Get(slug string) (*app.Article, error) {
 
 	return &article, nil
 }
-
-// Articles feed query
-// select * from articles a join users u on (a.author=u.name) where author in (select follows from followers where follower='test');
-
-// Articles list with following column
-// select a.title, a.slug, a.body, f.follows != '' as follows from articles a left join followers f on (a.author=f.follows) order by slug;
-
-// Articles list with following column and profile info
-// select a.title, a.slug, a.body, u.bio, f.follows != '' as follows from articles a join users u on (a.author=u.name) left join followers f on (u.name=f.follows)

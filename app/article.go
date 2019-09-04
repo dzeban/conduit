@@ -18,6 +18,7 @@ type Article struct {
 // ArticleStore defines an interface to work with articles
 type ArticleStore interface {
 	List(f ArticleListFilter) ([]Article, error)
+	Feed(f ArticleListFilter) ([]Article, error)
 	Get(slug string) (*Article, error)
 }
 

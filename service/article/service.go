@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/jwt"
 	"github.com/dzeban/conduit/store/article"
 )
 
@@ -28,6 +29,14 @@ func New(store app.ArticleStore, secret string) *Service {
 
 	// Unauthenticated endpoints
 	router.Get("/", s.HandleArticleList)
+
+	// Endpoints protected by JWT auth
+	router.Group(func(r chi.Router) {
+		r.Use(jwt.Auth(s.secret))
+
+		r.Get("/feed", s.HandleArticleFeed)
+	})
+
 	router.Get("/{slug}", s.HandleArticleGet)
 
 	return s
@@ -44,6 +53,10 @@ func NewFromDSN(DSN string, secret string) (*Service, error) {
 
 func (s Service) List(f app.ArticleListFilter) ([]app.Article, error) {
 	return s.store.List(f)
+}
+
+func (s Service) Feed(f app.ArticleListFilter) ([]app.Article, error) {
+	return s.store.Feed(f)
 }
 
 func (s Service) Get(slug string) (*app.Article, error) {

@@ -65,6 +65,44 @@ func (s *Service) HandleArticleList(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonArticles)
 }
 
+// HandleArticles is a handler for /articles API endpoint
+func (s *Service) HandleArticleFeed(w http.ResponseWriter, r *http.Request) {
+	val := r.Context().Value("username")
+	if val == nil {
+		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
+		return
+	}
+
+	username, ok := val.(string)
+	if !ok {
+		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	if username == "" {
+		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	f := parseArticleListFilter(r)
+
+	f.Username = username
+
+	articles, err := s.Feed(f)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to get articles feed"), http.StatusInternalServerError)
+		return
+	}
+
+	jsonArticles, err := json.Marshal(articles)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to marshal json for articles feed"), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonArticles)
+}
+
 // HandleArticle is a handler for /article/{slug} API endpoint
 func (s *Service) HandleArticleGet(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
