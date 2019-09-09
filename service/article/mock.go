@@ -36,6 +36,11 @@ func (s mockStore) Create(a *app.Article) error {
 	return nil
 }
 
+func (s mockStore) Delete(slug string) error {
+	delete(s.articles, slug)
+	return nil
+}
+
 func (s mockStore) List(f app.ArticleListFilter) ([]app.Article, error) {
 	i := uint64(0)
 	var list []app.Article

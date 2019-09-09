@@ -120,6 +120,13 @@ func main() {
 			CompleterWithPrefix: OptsCompleter(article.CreateOpts),
 		})
 
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "delete",
+			Help:                "Delete article",
+			Func:                article.Delete,
+			CompleterWithPrefix: OptsCompleter(article.DeleteOpts),
+		})
+
 		cli.AddCmd(articleCmd)
 	}
 

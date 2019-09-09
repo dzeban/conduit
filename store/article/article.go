@@ -244,3 +244,23 @@ func (s PostgresStore) Create(a *app.Article) error {
 
 	return nil
 }
+
+func (s PostgresStore) Delete(slug string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.
+			Delete("articles").
+			Where(sq.Eq{"slug": slug}).
+			ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build delete query")
+	}
+
+	fmt.Println(query, args)
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute delete query")
+	}
+
+	return nil
+}

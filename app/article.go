@@ -25,6 +25,7 @@ type ArticleStore interface {
 	Feed(f ArticleListFilter) ([]Article, error)
 	Get(slug string) (*Article, error)
 	Create(a *Article) error
+	Delete(slug string) error
 }
 
 // ArticleServiceConfig describes configuration for ArticleService

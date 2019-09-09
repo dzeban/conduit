@@ -38,6 +38,7 @@ func New(store app.ArticleStore, secret string) *Service {
 
 		r.Get("/feed", s.HandleArticleFeed)
 		r.Post("/", s.HandleArticleCreate)
+		r.Delete("/{slug}", s.HandleArticleDelete)
 	})
 
 	router.Get("/{slug}", s.HandleArticleGet)
@@ -69,4 +70,8 @@ func (s Service) Get(slug string) (*app.Article, error) {
 func (s Service) Create(a *app.Article) error {
 	a.Slug = slug.Make(a.Title) + "-" + uniuri.NewLen(4)
 	return s.store.Create(a)
+}
+
+func (s Service) Delete(slug string) error {
+	return s.store.Delete(slug)
 }

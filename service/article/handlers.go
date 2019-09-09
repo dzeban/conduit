@@ -178,3 +178,47 @@ func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(jsonArticle)
 }
+
+func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
+	val := r.Context().Value("username")
+	if val == nil {
+		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
+		return
+	}
+
+	username, ok := val.(string)
+	if !ok {
+		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	if username == "" {
+		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	slug := chi.URLParam(r, "slug")
+
+	// Check that article exists
+	article, err := s.Get(slug)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
+		return
+	}
+	if article == nil {
+		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
+		return
+	}
+
+	// Check that this article belongs to this user
+	fmt.Println(article.Author.Name, username)
+	if article.Author.Name != username {
+		http.Error(w, app.ServerError(err, "not allowed to delete other user article"), http.StatusForbidden)
+		return
+	}
+
+	err = s.Delete(slug)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to delete article"), http.StatusInternalServerError)
+	}
+}
