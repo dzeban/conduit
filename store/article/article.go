@@ -167,26 +167,39 @@ func (s PostgresStore) Feed(f app.ArticleListFilter) ([]app.Article, error) {
 
 // Get returns a single article by its slug
 func (s PostgresStore) Get(slug string) (*app.Article, error) {
-	queryArticle := `
-		SELECT
-			title,
-			description,
-			body,
-			created,
-			updated
-		FROM
-			articles
-		WHERE
-			slug = $1
-	`
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.Select(`
+				a.title as title,
+				a.description as description,
+				a.body as body,
+				a.created as created,
+				a.updated as updated,
+				a.author as username,
+				u.bio as bio,
+				u.image as image,
+				f.follows != '' as following
+			`).
+			From("articles a").
+			Join("users u on (a.author=u.name)").
+			LeftJoin("followers f on (u.name=f.follows)").
+			Where(sq.Eq{"slug": slug}).
+			ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build select query")
+	}
 
-	row := s.db.QueryRowx(queryArticle, slug)
+	row := s.db.QueryRowx(query, args...)
 
-	var title string
-	var description, body sql.NullString
+	var title, authorName string
+	var description, body, bio, image sql.NullString
 	var created, updated time.Time
+	var following sql.NullBool
 
-	err := row.Scan(&title, &description, &body, &created, &updated)
+	err = row.Scan(
+		&title, &description, &body, &created, &updated,
+		&authorName, &bio, &image, &following,
+	)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -200,6 +213,12 @@ func (s PostgresStore) Get(slug string) (*app.Article, error) {
 		Body:        body.String,
 		Created:     created,
 		Updated:     updated,
+		Author: app.Profile{
+			Name:      authorName,
+			Bio:       bio.String,
+			Image:     image.String,
+			Following: following.Bool,
+		},
 	}
 
 	return &article, nil
