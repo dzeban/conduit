@@ -125,3 +125,56 @@ func (s *Service) HandleArticleGet(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(jsonArticle)
 }
+
+func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
+	val := r.Context().Value("username")
+	if val == nil {
+		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
+		return
+	}
+
+	username, ok := val.(string)
+	if !ok {
+		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	if username == "" {
+		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var req app.ArticleCreateRequest
+	err := decoder.Decode(&req)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
+		return
+	}
+
+	// Create article
+	req.Article.Author.Name = username
+	err = s.Create(&req.Article)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to create article"), http.StatusInternalServerError)
+	}
+
+	// Return newly created article
+	article, err := s.Get(req.Article.Slug)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
+		return
+	}
+	if article == nil {
+		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", req.Article.Slug)), http.StatusNotFound)
+		return
+	}
+
+	jsonArticle, err := json.Marshal(article)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to marshal json for article get"), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonArticle)
+}

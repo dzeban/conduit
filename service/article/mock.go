@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/gosimple/slug"
 )
 
 type mockStore struct {
@@ -27,6 +28,12 @@ func newMockStore() app.ArticleStore {
 func (s mockStore) Get(slug string) (*app.Article, error) {
 	a := s.articles[slug] // because go complains: cannot take the address of s.articles[slug]
 	return &a, nil
+}
+
+func (s mockStore) Create(a *app.Article) error {
+	slug := slug.Make(a.Title)
+	s.articles[slug] = *a
+	return nil
 }
 
 func (s mockStore) List(f app.ArticleListFilter) ([]app.Article, error) {

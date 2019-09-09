@@ -15,11 +15,16 @@ type Article struct {
 	Author      Profile   `json:"author"`
 }
 
+type ArticleCreateRequest struct {
+	Article Article `json:"article"`
+}
+
 // ArticleStore defines an interface to work with articles
 type ArticleStore interface {
 	List(f ArticleListFilter) ([]Article, error)
 	Feed(f ArticleListFilter) ([]Article, error)
 	Get(slug string) (*Article, error)
+	Create(a *Article) error
 }
 
 // ArticleServiceConfig describes configuration for ArticleService

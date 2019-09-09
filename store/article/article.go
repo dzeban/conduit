@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -202,4 +203,25 @@ func (s PostgresStore) Get(slug string) (*app.Article, error) {
 	}
 
 	return &article, nil
+}
+
+func (s PostgresStore) Create(a *app.Article) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.
+			Insert("articles").
+			Columns("slug", "title", "description", "body", "author").
+			Values(a.Slug, a.Title, a.Description, a.Body, a.Author.Name).
+			ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build insert query")
+	}
+
+	fmt.Println(query, args)
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute insert query")
+	}
+
+	return nil
 }

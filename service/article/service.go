@@ -1,7 +1,9 @@
 package article
 
 import (
+	"github.com/dchest/uniuri"
 	"github.com/go-chi/chi"
+	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
@@ -35,6 +37,7 @@ func New(store app.ArticleStore, secret string) *Service {
 		r.Use(jwt.Auth(s.secret))
 
 		r.Get("/feed", s.HandleArticleFeed)
+		r.Post("/", s.HandleArticleCreate)
 	})
 
 	router.Get("/{slug}", s.HandleArticleGet)
@@ -61,4 +64,9 @@ func (s Service) Feed(f app.ArticleListFilter) ([]app.Article, error) {
 
 func (s Service) Get(slug string) (*app.Article, error) {
 	return s.store.Get(slug)
+}
+
+func (s Service) Create(a *app.Article) error {
+	a.Slug = slug.Make(a.Title) + "-" + uniuri.NewLen(4)
+	return s.store.Create(a)
 }
