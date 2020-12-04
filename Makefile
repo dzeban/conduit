@@ -25,7 +25,7 @@ down:
 	docker-compose down
 
 start:
-	docker-compose up
+	docker-compose up --build -d
 
 stop:
 	docker-compose stop
