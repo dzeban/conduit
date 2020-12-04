@@ -121,6 +121,13 @@ func main() {
 		})
 
 		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "update",
+			Help:                "Update article",
+			Func:                article.Update,
+			CompleterWithPrefix: OptsCompleter(article.UpdateOpts),
+		})
+
+		articleCmd.AddCmd(&ishell.Cmd{
 			Name:                "delete",
 			Help:                "Delete article",
 			Func:                article.Delete,

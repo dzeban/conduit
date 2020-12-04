@@ -19,12 +19,23 @@ type ArticleCreateRequest struct {
 	Article Article `json:"article"`
 }
 
+type ArticleUpdateRequest struct {
+	Article ArticleUpdateRequestData `json:"article"`
+}
+
+type ArticleUpdateRequestData struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Body        string `json:"body"`
+}
+
 // ArticleStore defines an interface to work with articles
 type ArticleStore interface {
 	List(f ArticleListFilter) ([]Article, error)
 	Feed(f ArticleListFilter) ([]Article, error)
 	Get(slug string) (*Article, error)
 	Create(a *Article) error
+	Update(a *Article) error
 	Delete(slug string) error
 }
 

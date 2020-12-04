@@ -36,6 +36,11 @@ func (s mockStore) Create(a *app.Article) error {
 	return nil
 }
 
+func (s mockStore) Update(a *app.Article) error {
+	s.articles[a.Slug] = *a
+	return nil
+}
+
 func (s mockStore) Delete(slug string) error {
 	delete(s.articles, slug)
 	return nil

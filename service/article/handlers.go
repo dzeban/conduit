@@ -222,3 +222,50 @@ func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, app.ServerError(err, "failed to delete article"), http.StatusInternalServerError)
 	}
 }
+
+func (s *Service) HandleArticleUpdate(w http.ResponseWriter, r *http.Request) {
+	val := r.Context().Value("username")
+	if val == nil {
+		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
+		return
+	}
+
+	username, ok := val.(string)
+	if !ok {
+		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	if username == "" {
+		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		return
+	}
+
+	slug := chi.URLParam(r, "slug")
+
+	decoder := json.NewDecoder(r.Body)
+	var req app.ArticleUpdateRequest
+	err := decoder.Decode(&req)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
+		return
+	}
+
+	article, err := s.Update(slug, &req)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to update article"), http.StatusInternalServerError)
+		return
+	}
+	if article == nil {
+		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
+		return
+	}
+
+	jsonArticle, err := json.Marshal(article)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to marshal json for article get"), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(jsonArticle)
+}

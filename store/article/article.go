@@ -264,3 +264,28 @@ func (s PostgresStore) Delete(slug string) error {
 
 	return nil
 }
+
+func (s PostgresStore) Update(a *app.Article) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.
+			Update("articles").
+			SetMap(map[string]interface{}{
+				"title":       a.Title,
+				"description": a.Description,
+				"body":        a.Body,
+			}).
+			Where(sq.Eq{"slug": a.Slug}).
+			ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build update query")
+	}
+
+	fmt.Println(query, args)
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute update query")
+	}
+
+	return nil
+}

@@ -38,6 +38,7 @@ func New(store app.ArticleStore, secret string) *Service {
 
 		r.Get("/feed", s.HandleArticleFeed)
 		r.Post("/", s.HandleArticleCreate)
+		r.Put("/{slug}", s.HandleArticleUpdate)
 		r.Delete("/{slug}", s.HandleArticleDelete)
 	})
 
@@ -74,4 +75,37 @@ func (s Service) Create(a *app.Article) error {
 
 func (s Service) Delete(slug string) error {
 	return s.store.Delete(slug)
+}
+
+func (s Service) Update(slug string, req *app.ArticleUpdateRequest) (*app.Article, error) {
+	article, err := s.Get(slug)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get article")
+	}
+
+	if article == nil {
+		return nil, errors.Wrap(err, "article not found")
+	}
+
+	if req.Article.Title != "" {
+		article.Title = req.Article.Title
+	}
+	if req.Article.Description != "" {
+		article.Description = req.Article.Description
+	}
+	if req.Article.Body != "" {
+		article.Body = req.Article.Body
+	}
+
+	err = s.store.Update(article)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update")
+	}
+
+	article, err = s.Get(slug)
+	if err != nil {
+		return nil, errors.Wrap(err, "get updated article")
+	}
+
+	return article, nil
 }

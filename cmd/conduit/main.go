@@ -15,15 +15,15 @@ import (
 	"github.com/dzeban/conduit/service/user"
 )
 
-type ServerConfig struct {
-	Port int `default:"8080"`
-}
-
 // Config represents app configuration
 type Config struct {
 	Server   ServerConfig
 	Articles app.ArticleServiceConfig
 	Users    app.UserServiceConfig
+}
+
+type ServerConfig struct {
+	Port int `default:"8080"`
 }
 
 func main() {
