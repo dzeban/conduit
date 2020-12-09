@@ -1,17 +1,12 @@
-.PHONY: run vendor test build install up down start stop swagger-up swagger-down
-
-export GOFLAGS = -mod=vendor
+.PHONY: run test build install up down start stop swagger-up swagger-down
 
 run: test build up
 	./conduit
 
-vendor:
-	go mod vendor
-
-test: vendor
+test:
 	go test ./...
 
-build: vendor
+build:
 	go build ./cmd/conduit
 
 install:
@@ -48,7 +43,7 @@ integration-test-down:
 integration-test-psql:
 	docker-compose -f docker-compose.test.yml exec postgres psql -U test
 
-cli: vendor
+cli:
 	go build ./cmd/cli
 
 psql:

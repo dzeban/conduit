@@ -24,4 +24,4 @@ docker-compose.
 [ ] Move to Gin
 [ ] Remove down migrations
 [ ] Move migrations to the store
-[ ] Remove vendoring
+[x] Remove vendoring
