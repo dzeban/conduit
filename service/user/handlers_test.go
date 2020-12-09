@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
 )
 
@@ -164,7 +165,7 @@ func checkToken(body []byte, t *testing.T) {
 	}
 }
 
-func TestHandleUserGet(t *testing.T) {
+func TestHandleUserGetEmpty(t *testing.T) {
 	cases := []struct {
 		name   string
 		auth   string
@@ -173,45 +174,14 @@ func TestHandleUserGet(t *testing.T) {
 		{
 			"null",
 			"",
-			http.StatusBadRequest,
+			http.StatusUnauthorized,
 		},
 		{
 			"empty",
 			"Token ",
-			http.StatusBadRequest,
-		},
-		{
-			// no sub claim
-			"nosub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsIm5hbWUiOiJ0ZXN0In0.nZMAfsqMBNKSc7zD_F45icTTMolVMARBGOK13INJdtw",
 			http.StatusUnauthorized,
-		},
-		{
-			// no name claim
-			"noname",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20ifQ.eox2GVi27V5h16i_Ob5KtEnOtiMBu-jzpapDdeYzFbI",
-			http.StatusUnauthorized,
-		},
-		{
-			// empty sub claim
-			"emptysub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiIsIm5hbWUiOiJ0ZXN0In0.24fNqWxFncXeBVi4gMk6wQJ9iSMrxZ9_CgvFNG8djno",
-			http.StatusUnauthorized,
-		},
-		{
-			// email is nosuchuser@example.com
-			"notfound",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6Im5vc3VjaHVzZXJAZXhhbXBsZS5jb20iLCJuYW1lIjoibm9zdWNodXNlciJ9.fPIrYSf8RF8rp_oI5RjkY68ex-mIz87erD0SqCiHR7I",
-			http.StatusNotFound,
-		},
-		{
-			// email is test@example.com
-			"valid",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
-			http.StatusOK,
 		},
 	}
-
 	s := New(newMockStore(), testSecret)
 
 	ts := httptest.NewServer(s.router)
@@ -240,57 +210,82 @@ func TestHandleUserGet(t *testing.T) {
 	}
 }
 
+func TestHandleUserGetJWT(t *testing.T) {
+	cases := []struct {
+		name   string
+		user   app.User
+		status int
+	}{
+		{
+			"noemail",
+			app.User{Name: "test"},
+			http.StatusUnauthorized,
+		},
+		{
+			"noname",
+			app.User{Email: "test@example.com"},
+			http.StatusUnauthorized,
+		},
+		{
+			"emptyemail",
+			app.User{Email: ""},
+			http.StatusUnauthorized,
+		},
+		{
+			"notfound",
+			app.User{Name: "nosuchuser", Email: "nosuchuser@example.com"},
+			http.StatusNotFound,
+		},
+		{
+			"valid",
+			app.User{Name: "test", Email: "test@example.com"},
+			http.StatusOK,
+		},
+	}
+
+	s := New(newMockStore(), testSecret)
+
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", ts.URL, nil)
+			if err != nil {
+				t.Errorf("failed to create request: %s", err)
+			}
+			token, err := jwt.New(&c.user, []byte(testSecret))
+			if err != nil {
+				t.Errorf("failed to make jwt: %v", err)
+			}
+
+			req.Header.Add("Authorization", "Token "+token)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Errorf("failed to make a request: %s", err)
+			}
+			defer resp.Body.Close()
+
+			body, _ := ioutil.ReadAll(resp.Body)
+			if resp.StatusCode != c.status {
+				t.Errorf("invalid status code: want %d, got %d", c.status, resp.StatusCode)
+				t.Error(string(body))
+			}
+		})
+	}
+}
+
 func TestHandleUserUpdate(t *testing.T) {
 	cases := []struct {
 		name   string
-		auth   string
+		user   app.User
 		body   string
 		status int
 	}{
 		{
-			"null",
-			"",
-			`{}`,
-			http.StatusBadRequest,
-		},
-		{
-			"empty",
-			"Token ",
-			`{}`,
-			http.StatusBadRequest,
-		},
-		{
-			// no sub claim
-			"nosub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWV9.6ARuTLidiCvLg5nLJhrWff9fLbZaQTvRKKBQW-04P9Y",
-			`{}`,
-			http.StatusUnauthorized,
-		},
-		{
-			// empty sub claim
-			"emptysub",
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6IiJ9.R7UsDbYl0wVvAate0SbP8nDdXBp3uOVF-gP8FaegaZg",
-			`{}`,
-			http.StatusUnauthorized,
-		},
-		{
-			"invalid",
-			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
-			`{}`,
-			http.StatusBadRequest,
-		},
-		{
-			"other",
-			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
-			`{"user": {"email": "other@example.com", "password":"evil"}}`,
-			http.StatusForbidden,
-		},
-		{
 			"valid",
-			// email is test@example.com
-			"Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaWduZWQiOnRydWUsInN1YiI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoidGVzdCJ9.2wA__EfTfnZ2LEDUz3cB1lxpYWWo9w3THE-fa0LqzaU",
+			app.User{Name: "test", Email: "test@example.com"},
 			`{"user": {"username": "admin"}}`,
 			http.StatusOK,
 		},
@@ -307,7 +302,13 @@ func TestHandleUserUpdate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create request: %s", err)
 			}
-			req.Header.Add("Authorization", c.auth)
+
+			token, err := jwt.New(&c.user, []byte(testSecret))
+			if err != nil {
+				t.Errorf("failed to make jwt: %v", err)
+			}
+
+			req.Header.Add("Authorization", "Token "+token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {

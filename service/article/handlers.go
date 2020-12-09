@@ -67,26 +67,15 @@ func (s *Service) HandleArticleList(w http.ResponseWriter, r *http.Request) {
 
 // HandleArticles is a handler for /articles API endpoint
 func (s *Service) HandleArticleFeed(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("username")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
-		return
-	}
-
-	username, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	if username == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
 	f := parseArticleListFilter(r)
 
-	f.Username = username
+	f.Username = currentUser.Name
 
 	articles, err := s.Feed(f)
 	if err != nil {
@@ -127,20 +116,9 @@ func (s *Service) HandleArticleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("username")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
-		return
-	}
-
-	username, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	if username == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
@@ -153,7 +131,7 @@ func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create article
-	req.Article.Author.Name = username
+	req.Article.Author.Name = currentUser.Name
 	err = s.Create(&req.Article)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to create article"), http.StatusInternalServerError)
@@ -180,20 +158,9 @@ func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("username")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
-		return
-	}
-
-	username, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	if username == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
@@ -211,8 +178,7 @@ func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check that this article belongs to this user
-	fmt.Println(article.Author.Name, username)
-	if article.Author.Name != username {
+	if article.Author.Name != currentUser.Name {
 		http.Error(w, app.ServerError(err, "not allowed to delete other user article"), http.StatusForbidden)
 		return
 	}
@@ -224,34 +190,40 @@ func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleArticleUpdate(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("username")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no username in context"), http.StatusUnauthorized)
-		return
-	}
-
-	username, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	if username == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
 	slug := chi.URLParam(r, "slug")
 
+	// Check that article exists
+	article, err := s.Get(slug)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
+		return
+	}
+	if article == nil {
+		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
+		return
+	}
+
+	// Check that this article belongs to this user
+	if article.Author.Name != currentUser.Name {
+		http.Error(w, app.ServerError(err, "not allowed to delete other user article"), http.StatusForbidden)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	var req app.ArticleUpdateRequest
-	err := decoder.Decode(&req)
+	err = decoder.Decode(&req)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
 		return
 	}
 
-	article, err := s.Update(slug, &req)
+	article, err = s.Update(slug, &req)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to update article"), http.StatusInternalServerError)
 		return

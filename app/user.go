@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 )
@@ -31,11 +32,23 @@ type UserServiceConfig struct {
 // User is identified by email and authenticated by JWT
 // Password is hidden by custom marshaller
 type User struct {
-	Name     string `json:"username"`
-	Email    string `json:"email"`
-	Bio      string `json:"bio,omitempty"`
-	Image    string `json:"image,omitempty"` // base64 encoded
-	Token    string `json:"token,omitempty"`
+	Name  string `json:"username"`
+	Email string `json:"email"`
+	Bio   string `json:"bio,omitempty"`
+
+	// Image is base64-encoded user avatar
+	Image string `json:"image,omitempty"`
+
+	// Token is JWT returned by user register, login and update
+	Token string `json:"token,omitempty"`
+
+	// Password is used to carry plain-text password from user login, register,
+	// update requests and then immediately replaced with hash.
+	// This multi-purpose'ness appears because User struct is shared for request
+	// and for app type.
+	//
+	// TODO: Introduce struct for Login/Register/Update requests, rename field
+	// here to hash. This also will make custom marshaller obsolete.
 	Password string `json:"password,omitempty"`
 }
 
@@ -76,6 +89,18 @@ func (u User) Map() map[string]interface{} {
 	}
 
 	return m
+}
+
+// context.Context helpers
+type userContextKey string
+
+func UserNewContext(ctx context.Context, u *User) context.Context {
+	return context.WithValue(ctx, userContextKey(""), u)
+}
+
+func UserFromContext(ctx context.Context) (*User, bool) {
+	u, ok := ctx.Value(userContextKey("")).(*User)
+	return u, ok
 }
 
 // UserRequest represent a json structure used

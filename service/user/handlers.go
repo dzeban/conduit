@@ -16,20 +16,9 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("email")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no email in context"), http.StatusUnauthorized)
-		return
-	}
-
-	email, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	if email == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
@@ -48,12 +37,7 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.User.Email != "" && req.User.Email != email {
-		http.Error(w, app.ServerError(err, "not allowed to update other user"), http.StatusForbidden)
-		return
-	}
-
-	user, err := s.Update(email, req.User)
+	user, err := s.Update(currentUser.Email, req.User)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -170,24 +154,13 @@ func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleUserGet gets the currently logged-in user. Requires authentication.
 func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
-	val := r.Context().Value("email")
-	if val == nil {
-		http.Error(w, app.ServerError(nil, "no email in context"), http.StatusUnauthorized)
-		return
-	}
-
-	email, ok := val.(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "invalid auth email"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
-	if email == "" {
-		http.Error(w, app.ServerError(nil, "empty auth email"), http.StatusUnauthorized)
-		return
-	}
-
-	user, err := s.Get(email)
+	user, err := s.Get(currentUser.Email)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "failed to get user"), http.StatusNotFound)
 		return
@@ -227,16 +200,16 @@ func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
-
-	email, ok := r.Context().Value("email").(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "no email in context"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
+	username := chi.URLParam(r, "username")
+
 	// Query current user to get name
-	follower, err := s.Get(email)
+	follower, err := s.Get(currentUser.Email)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -275,14 +248,14 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 
-	email, ok := r.Context().Value("email").(string)
+	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, app.ServerError(nil, "no email in context"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
 	// Query current user to get name
-	follower, err := s.Get(email)
+	follower, err := s.Get(currentUser.Email)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -316,10 +289,4 @@ func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonUser)
-}
-
-func (s *Service) loggerHandler(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r)
-	}
 }

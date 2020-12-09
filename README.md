@@ -11,7 +11,9 @@ docker-compose.
 
 # TODO
 
-[ ] Make middleware for user auth to simplify handlers
+[x] Make middleware for user auth to simplify handlers
+    [x] User handlers
+    [x] Article handlers
 [ ] Move service logic out of handlers to the service
 [ ] Make custom lower snake case marshaller in local json package and remove
     json struct tags because they spoil types.
