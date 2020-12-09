@@ -62,6 +62,14 @@ func (s *Service) Get(email string) (*app.User, error) {
 
 // Login checks the user request and logins the user
 func (s *Service) Login(user app.User) (*app.User, error) {
+	if user.Email == "" {
+		return nil, errors.New("email is required")
+	}
+
+	if user.Password == "" {
+		return nil, errors.New("password is required")
+	}
+
 	u, err := s.store.Get(user.Email)
 	if err != nil {
 		return nil, app.ErrUserNotFound
@@ -82,6 +90,14 @@ func (s *Service) Login(user app.User) (*app.User, error) {
 // Update modifies user found by email with the new data passed in user.
 // It returns updated user.
 func (s *Service) Update(email string, user app.User) (*app.User, error) {
+	if user.Name == "" &&
+		user.Email == "" &&
+		user.Bio == "" &&
+		user.Image == "" &&
+		user.Password == "" {
+		return nil, errors.New("at least one of name, email, bio, image, password is required for update")
+	}
+
 	// If password is being changed, make the hash from it
 	if user.Password != "" {
 		hash, err := password.HashAndEncode(user.Password)
@@ -102,6 +118,18 @@ func (s *Service) Update(email string, user app.User) (*app.User, error) {
 }
 
 func (s *Service) Register(user app.User) (*app.User, error) {
+	if user.Name == "" {
+		return nil, errors.New("username is required")
+	}
+
+	if user.Email == "" {
+		return nil, errors.New("email is required")
+	}
+
+	if user.Password == "" {
+		return nil, errors.New("password is required")
+	}
+
 	// Check if user exists
 	u, _ := s.store.Get(user.Email)
 	if u != nil {
@@ -123,4 +151,42 @@ func (s *Service) Register(user app.User) (*app.User, error) {
 	}
 
 	return &newUser, nil
+}
+
+func (s *Service) GetProfile(username string) (*app.Profile, error) {
+	return s.store.Profile(username)
+}
+
+func (s *Service) FollowProfile(follower *app.User, username string) (*app.Profile, error) {
+	// Query profile to follow to ensure it exists
+	profile, err := s.store.Profile(username)
+	if err == app.ErrUserNotFound {
+		return nil, errors.New("no such profile")
+	} else if err != nil {
+		return nil, errors.New("failed to get profile")
+	}
+
+	err = s.store.Follow(follower.Name, username)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to follow user")
+	}
+
+	return profile, nil
+}
+
+func (s *Service) UnfollowProfile(follower *app.User, username string) (*app.Profile, error) {
+	// Query profile to follow to ensure it exists
+	profile, err := s.store.Profile(username)
+	if err == app.ErrUserNotFound {
+		return nil, errors.New("no such profile")
+	} else if err != nil {
+		return nil, errors.New("failed to get profile")
+	}
+
+	err = s.store.Unfollow(follower.Name, username)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to unfollow user")
+	}
+
+	return profile, nil
 }

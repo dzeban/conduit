@@ -31,12 +31,6 @@ func (s *Service) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = req.User.ValidateForUpdate()
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to validate request"), http.StatusBadRequest)
-		return
-	}
-
 	user, err := s.Update(currentUser.Email, req.User)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
@@ -72,22 +66,13 @@ func (s *Service) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
 	var req app.UserRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
-		return
-	}
-
-	err = req.User.ValidateForRegister()
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to validate request"), http.StatusBadRequest)
+		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusUnprocessableEntity)
 		return
 	}
 
 	user, err := s.Register(req.User)
-	if err == app.ErrUserExists {
-		http.Error(w, app.ServerError(err, "failed to register user"), http.StatusConflict)
-		return
-	} else if err != nil {
-		http.Error(w, app.ServerError(err, "failed to register user"), http.StatusInternalServerError)
+	if err != nil {
+		http.Error(w, app.ServerError(err, "failed to register user"), http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -117,19 +102,13 @@ func (s *Service) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	var req app.UserRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
-		return
-	}
-
-	err = req.User.ValidateForLogin()
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to validate request"), http.StatusBadRequest)
+		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusUnprocessableEntity)
 		return
 	}
 
 	user, err := s.Login(req.User)
 	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to login"), http.StatusUnauthorized)
+		http.Error(w, app.ServerError(err, "failed to login"), http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -181,7 +160,7 @@ func (s *Service) HandleUserGet(w http.ResponseWriter, r *http.Request) {
 func (s *Service) HandleProfileGet(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 
-	profile, err := s.store.Profile(username)
+	profile, err := s.GetProfile(username)
 	if err == app.ErrUserNotFound {
 		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
 		return
@@ -208,27 +187,7 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 
 	username := chi.URLParam(r, "username")
 
-	// Query current user to get name
-	follower, err := s.Get(currentUser.Email)
-	if err == app.ErrUserNotFound {
-		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get user"), http.StatusInternalServerError)
-		return
-	}
-
-	// Query profile to follow to ensure it exists
-	profile, err := s.store.Profile(username)
-	if err == app.ErrUserNotFound {
-		http.Error(w, app.ServerError(err, "no such profile"), http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get profile"), http.StatusInternalServerError)
-		return
-	}
-
-	err = s.store.Follow(follower.Name, username)
+	profile, err := s.FollowProfile(currentUser, username)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to follow user"), http.StatusInternalServerError)
 		return
@@ -246,35 +205,15 @@ func (s *Service) HandleProfileFollow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleProfileUnfollow(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
-
 	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
 		http.Error(w, app.ServerError(nil, "no user in context"), http.StatusUnauthorized)
 		return
 	}
 
-	// Query current user to get name
-	follower, err := s.Get(currentUser.Email)
-	if err == app.ErrUserNotFound {
-		http.Error(w, app.ServerError(err, "no such user"), http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get user"), http.StatusInternalServerError)
-		return
-	}
+	username := chi.URLParam(r, "username")
 
-	// Query profile to follow to ensure it exists
-	profile, err := s.store.Profile(username)
-	if err == app.ErrUserNotFound {
-		http.Error(w, app.ServerError(err, "no such profile"), http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get profile"), http.StatusInternalServerError)
-		return
-	}
-
-	err = s.store.Unfollow(follower.Name, username)
+	profile, err := s.UnfollowProfile(currentUser, username)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to follow user"), http.StatusInternalServerError)
 		return

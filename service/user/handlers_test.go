@@ -23,22 +23,22 @@ func TestLoginHandler(t *testing.T) {
 		{
 			"null",
 			"",
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"empty",
 			"{}",
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"invalid",
 			`{"user": {"email":"test@example.com"}}`,
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"incorrect",
 			`{"user":{"email":"test@example.com","password":"incorrect"}}`,
-			http.StatusUnauthorized,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"valid",
@@ -90,22 +90,22 @@ func TestHandleUserRegister(t *testing.T) {
 		{
 			"null",
 			"",
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"empty",
 			"{}",
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"conflict",
 			`{"user":{"email":"test@example.com","username": "test", "password":"test"}}`,
-			http.StatusConflict,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"invalid",
 			`{"user":{"email":"new@example.com","password":"new"}}`,
-			http.StatusBadRequest,
+			http.StatusUnprocessableEntity,
 		},
 		{
 			"valid",

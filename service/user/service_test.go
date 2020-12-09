@@ -11,18 +11,22 @@ import (
 
 func TestLogin(t *testing.T) {
 	cases := []struct {
+		name string
 		user app.User
 		err  error
 	}{
 		{
+			"valid",
 			app.User{Email: "test@example.com", Name: "test", Password: "test"},
 			nil,
 		},
 		{
+			"nouser",
 			app.User{Email: "no@example.com", Password: "test"},
 			app.ErrUserNotFound,
 		},
 		{
+			"invalidpassword",
 			app.User{Email: "test@example.com", Password: "invalid"},
 			app.ErrPasswordMismatch,
 		},
@@ -30,42 +34,49 @@ func TestLogin(t *testing.T) {
 
 	s := New(newMockStore(), "test")
 	for _, c := range cases {
-		u, err := s.Login(c.user)
-		if err != c.err {
-			t.Errorf("Login(%#v) => unexpected error, want %v, got %v", c.user, c.err, err)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			u, err := s.Login(c.user)
+			if err != c.err {
+				t.Errorf("Login(%#v) => unexpected error, want %v, got %v", c.user, c.err, err)
+			}
 
-		if err == nil {
-			checkUser(c.user, *u, t)
-		}
+			if err == nil {
+				checkUser(c.user, *u, t)
+			}
+		})
 	}
 }
 
 func TestRegister(t *testing.T) {
 	cases := []struct {
+		name string
 		user app.User
 		err  error
 	}{
 		{
-			app.User{Email: "test@example.com", Password: "test"},
+			"exists",
+			app.User{Name: "test", Email: "test@example.com", Password: "test"},
 			app.ErrUserExists,
 		},
 		{
-			app.User{Email: "new@example.com", Password: "new"},
+			"valid",
+			app.User{Name: "new", Email: "new@example.com", Password: "new"},
 			nil,
 		},
 	}
 
 	s := New(newMockStore(), testSecret)
 	for _, c := range cases {
-		u, err := s.Register(c.user)
-		if err != c.err {
-			t.Errorf("Register(%#v) => unexpected error, want %v, got %v", c.user, c.err, err)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			u, err := s.Register(c.user)
+			if err != c.err {
+				t.Errorf("Register(%#v) => unexpected error, want %v, got %v", c.user, c.err, err)
+			}
 
-		if err == nil {
-			checkUser(c.user, *u, t)
-		}
+			if err == nil {
+				checkUser(c.user, *u, t)
+			}
+		})
 	}
 }
 
@@ -76,14 +87,14 @@ func TestUpdate(t *testing.T) {
 		want   app.User
 	}{
 		{
-			app.User{Email: "passwordUpdate@example.com", Password: "old"},
+			app.User{Name: "password_update", Email: "password_update@example.com", Password: "old"},
 			app.User{Password: "new"},
-			app.User{Email: "passwordUpdate@example.com", Password: "new"},
+			app.User{Name: "password_update", Email: "password_update@example.com", Password: "new"},
 		},
 		{
-			app.User{Email: "fieldsUpdate@example.com", Password: "password"},
+			app.User{Name: "fields_update", Email: "fieldsUpdate@example.com", Password: "password"},
 			app.User{Name: "name", Bio: "bio", Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="},
-			app.User{Email: "fieldsUpdate@example.com", Password: "password", Name: "name", Bio: "bio", Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="},
+			app.User{Name: "name", Email: "fieldsUpdate@example.com", Password: "password", Bio: "bio", Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="},
 		},
 	}
 
