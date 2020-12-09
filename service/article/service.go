@@ -1,6 +1,8 @@
 package article
 
 import (
+	"fmt"
+
 	"github.com/dchest/uniuri"
 	"github.com/go-chi/chi"
 	"github.com/gosimple/slug"
@@ -68,16 +70,49 @@ func (s Service) Get(slug string) (*app.Article, error) {
 	return s.store.Get(slug)
 }
 
-func (s Service) Create(a *app.Article) error {
-	a.Slug = slug.Make(a.Title) + "-" + uniuri.NewLen(4)
-	return s.store.Create(a)
+func (s Service) Create(req *app.ArticleCreateRequest, author *app.User) (*app.Article, error) {
+	article := &app.Article{
+		Title:       req.Title,
+		Description: req.Description,
+		Body:        req.Body,
+
+		Author: app.Profile{
+			Name: author.Name,
+		},
+
+		// Generate slug
+		Slug: slug.Make(req.Title) + "-" + uniuri.NewLen(4),
+	}
+
+	err := s.store.Create(article)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create article")
+	}
+
+	// Return newly created article
+	return s.Get(article.Slug)
 }
 
-func (s Service) Delete(slug string) error {
+func (s Service) Delete(slug string, currentUser *app.User) error {
+	// Check that article exists
+	article, err := s.Get(slug)
+	if err != nil {
+		return errors.Wrap(err, "failed to get article")
+	}
+
+	if article == nil {
+		return fmt.Errorf("article with slug %s not found", slug)
+	}
+
+	// Check that this article belongs to this user
+	if article.Author.Name != currentUser.Name {
+		return errors.New("not allowed to delete other user article")
+	}
+
 	return s.store.Delete(slug)
 }
 
-func (s Service) Update(slug string, req *app.ArticleUpdateRequest) (*app.Article, error) {
+func (s Service) Update(slug string, req *app.ArticleUpdateRequest, currentUser *app.User) (*app.Article, error) {
 	article, err := s.Get(slug)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get article")
@@ -85,6 +120,11 @@ func (s Service) Update(slug string, req *app.ArticleUpdateRequest) (*app.Articl
 
 	if article == nil {
 		return nil, errors.Wrap(err, "article not found")
+	}
+
+	// Check that this article belongs to this user
+	if article.Author.Name != currentUser.Name {
+		return nil, errors.New("not allowed to delete other user article")
 	}
 
 	if req.Article.Title != "" {

@@ -16,7 +16,9 @@ type Article struct {
 }
 
 type ArticleCreateRequest struct {
-	Article Article `json:"article"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Body        string `json:"body"`
 }
 
 type ArticleUpdateRequest struct {

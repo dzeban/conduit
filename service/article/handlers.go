@@ -131,21 +131,9 @@ func (s *Service) HandleArticleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create article
-	req.Article.Author.Name = currentUser.Name
-	err = s.Create(&req.Article)
+	article, err := s.Create(&req, currentUser)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to create article"), http.StatusInternalServerError)
-	}
-
-	// Return newly created article
-	article, err := s.Get(req.Article.Slug)
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
-		return
-	}
-	if article == nil {
-		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", req.Article.Slug)), http.StatusNotFound)
-		return
 	}
 
 	jsonArticle, err := json.Marshal(article)
@@ -166,24 +154,7 @@ func (s *Service) HandleArticleDelete(w http.ResponseWriter, r *http.Request) {
 
 	slug := chi.URLParam(r, "slug")
 
-	// Check that article exists
-	article, err := s.Get(slug)
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
-		return
-	}
-	if article == nil {
-		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
-		return
-	}
-
-	// Check that this article belongs to this user
-	if article.Author.Name != currentUser.Name {
-		http.Error(w, app.ServerError(err, "not allowed to delete other user article"), http.StatusForbidden)
-		return
-	}
-
-	err = s.Delete(slug)
+	err := s.Delete(slug, currentUser)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to delete article"), http.StatusInternalServerError)
 	}
@@ -198,38 +169,17 @@ func (s *Service) HandleArticleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	slug := chi.URLParam(r, "slug")
 
-	// Check that article exists
-	article, err := s.Get(slug)
-	if err != nil {
-		http.Error(w, app.ServerError(err, "failed to get article"), http.StatusInternalServerError)
-		return
-	}
-	if article == nil {
-		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
-		return
-	}
-
-	// Check that this article belongs to this user
-	if article.Author.Name != currentUser.Name {
-		http.Error(w, app.ServerError(err, "not allowed to delete other user article"), http.StatusForbidden)
-		return
-	}
-
 	decoder := json.NewDecoder(r.Body)
 	var req app.ArticleUpdateRequest
-	err = decoder.Decode(&req)
+	err := decoder.Decode(&req)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to decode request"), http.StatusBadRequest)
 		return
 	}
 
-	article, err = s.Update(slug, &req)
+	article, err := s.Update(slug, &req, currentUser)
 	if err != nil {
 		http.Error(w, app.ServerError(err, "failed to update article"), http.StatusInternalServerError)
-		return
-	}
-	if article == nil {
-		http.Error(w, app.ServerError(nil, fmt.Sprintf("article with slug %s not found", slug)), http.StatusNotFound)
 		return
 	}
 
