@@ -153,7 +153,7 @@ func HashWithParams(password string, params HashParams) []byte {
 	)
 }
 
-// HashEncode creates Argon2 password hash for a given plaintext password
+// Hash creates Argon2 password hash for a given plaintext password
 // using default hash parameters
 func Hash(password string) ([]byte, HashParams, error) {
 	params, err := NewHashParams()
@@ -166,7 +166,7 @@ func Hash(password string) ([]byte, HashParams, error) {
 	return hash, params, nil
 }
 
-// HashEncode creates Argon2 password hash for a given plaintext password
+// HashAndEncode creates Argon2 password hash for a given plaintext password
 // using default hash parameters and returns its encoded representation
 func HashAndEncode(password string) (string, error) {
 	hash, params, err := Hash(password)

@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dzeban/conduit/app"
 	"github.com/pkg/errors"
+
+	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/transport"
 )
 
 var (
@@ -18,18 +20,18 @@ func Auth(secret []byte) func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			authHeader, ok := r.Header["Authorization"]
 			if !ok {
-				http.Error(w, app.ServerError(ErrJWTNoAuthorizationHeader, ""), http.StatusUnauthorized)
+				http.Error(w, transport.ServerError(ErrJWTNoAuthorizationHeader), http.StatusUnauthorized)
 				return
 			}
 
-			user, err := userFromJWT(authHeader[0], secret)
+			u, err := userFromJWT(authHeader[0], secret)
 			if err != nil {
-				http.Error(w, app.ServerError(err, "failed to parse jwt"), http.StatusUnauthorized)
+				http.Error(w, transport.ServerError(err), http.StatusUnauthorized)
 				return
 			}
 
 			// Store user in context for the further reference
-			authCtx := app.UserNewContext(r.Context(), user)
+			authCtx := u.NewContext(r.Context())
 
 			next.ServeHTTP(w, r.WithContext(authCtx))
 		}

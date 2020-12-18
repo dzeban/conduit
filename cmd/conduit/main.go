@@ -11,15 +11,21 @@ import (
 	"github.com/koding/multiconfig"
 
 	"github.com/dzeban/conduit/app"
-	"github.com/dzeban/conduit/service/article"
-	"github.com/dzeban/conduit/service/user"
+	"github.com/dzeban/conduit/postgres"
+	"github.com/dzeban/conduit/user"
 )
 
 // Config represents app configuration
 type Config struct {
 	Server   ServerConfig
 	Articles app.ArticleServiceConfig
-	Users    app.UserServiceConfig
+	Users    UserServiceConfig
+}
+
+// UserServiceConfig describes configuration for UserService
+type UserServiceConfig struct {
+	DSN    string `default:"postgres://postgres:postgres@postgres/conduit?sslmode=disable"`
+	Secret string
 }
 
 type ServerConfig struct {
@@ -45,20 +51,25 @@ func main() {
 
 	log.Printf("using config: %#v\n", config)
 
-	articleService, err := article.NewFromDSN(config.Articles.DSN, config.Articles.Secret)
+	// articleService, err := article.NewFromDSN(config.Articles.DSN, config.Articles.Secret)
+	// if err != nil {
+	// 	log.Fatal("cannot create article service: ", err)
+	// }
+
+	store, err := postgres.NewStore(config.Users.DSN)
 	if err != nil {
-		log.Fatal("cannot create article service: ", err)
+		log.Fatal("cannot create user store: ", err)
 	}
 
-	userService, err := user.NewFromDSN(config.Users.DSN, config.Users.Secret)
+	userServer, err := user.NewHTTP(store, []byte(config.Users.Secret))
 	if err != nil {
 		log.Fatal("cannot create user service: ", err)
 	}
 
 	// Setup API endpoints
-	router.Mount("/articles", articleService)
-	router.Mount("/users", userService)
-	router.Mount("/profiles", userService)
+	// router.Mount("/articles", articleService)
+	router.Mount("/users", userServer)
+	// router.Mount("/profiles", userService)
 
 	log.Println("start listening on", server.Addr)
 	log.Fatal(server.ListenAndServe())
