@@ -18,7 +18,8 @@ var (
 	ErrorUserUpdateForbidden = errors.New("user update forbidden")
 	ErrorPasswordMismatch    = errors.New("password mismatch")
 
-	ErrorArticleExists = errors.New("article exists")
+	ErrorArticleExists    = errors.New("article exists")
+	ErrorArticleNotExists = errors.New("article does not exist")
 
 	ErrorValidationUsernameIsRequired = errors.New("username is required")
 	ErrorValidationEmailIsRequired    = errors.New("email is required")
