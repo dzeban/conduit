@@ -177,14 +177,14 @@ func (s *Server) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check that user updates itself
-	if req.User.Email != "" && currentUser.Email != req.User.Email {
+	if req.User.Email != "" && req.User.Email != currentUser.Email {
 		http.Error(w, transport.ServerError(app.ErrorUserUpdateForbidden), http.StatusUnauthorized)
 		return
 	}
 
-	u, err := s.service.Update(currentUser.Email, &req)
+	u, err := s.service.Update(currentUser.Id, &req)
 	if err != nil {
-		http.Error(w, transport.ServerError(app.ErrorUpdate), http.StatusUnprocessableEntity)
+		http.Error(w, transport.ServerError(app.ErrorUpdate, err), http.StatusUnprocessableEntity)
 		return
 	}
 

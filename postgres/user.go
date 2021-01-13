@@ -13,10 +13,11 @@ import (
 func (s *Store) GetUser(email string) (*app.User, error) {
 	query := `
 		SELECT
+			id,
 			name,
 			bio,
 			image,
-			password
+			password_hash
 		FROM
 			users
 		WHERE
@@ -29,9 +30,10 @@ func (s *Store) GetUser(email string) (*app.User, error) {
 	// We can't use StructScan to the app.User var because bio and image may be
 	// NULL so these fields must be handled via sql.NullString. We can't use
 	// these sql-specific types in app.User because they're, well, sql-specific
+	var id int
 	var name, passwordHash string
 	var bio, image sql.NullString
-	err := row.Scan(&name, &bio, &image, &passwordHash)
+	err := row.Scan(&id, &name, &bio, &image, &passwordHash)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -39,6 +41,48 @@ func (s *Store) GetUser(email string) (*app.User, error) {
 	}
 
 	user := app.User{
+		Id:           id,
+		Name:         name,
+		Email:        email,
+		PasswordHash: passwordHash,
+		Bio:          bio.String,
+		Image:        image.String,
+	}
+
+	return &user, nil
+}
+
+func (s *Store) GetUserById(id int) (*app.User, error) {
+	query := `
+		SELECT
+			name,
+			email,
+			bio,
+			image,
+			password_hash
+		FROM
+			users
+		WHERE
+			id = $1
+	`
+
+	row := s.db.QueryRowx(query, id)
+
+	// Scan the row using simple Scan method.
+	// We can't use StructScan to the app.User var because bio and image may be
+	// NULL so these fields must be handled via sql.NullString. We can't use
+	// these sql-specific types in app.User because they're, well, sql-specific
+	var name, email, passwordHash string
+	var bio, image sql.NullString
+	err := row.Scan(&name, &email, &bio, &image, &passwordHash)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "failed to query user")
+	}
+
+	user := app.User{
+		Id:           id,
 		Name:         name,
 		Email:        email,
 		PasswordHash: passwordHash,
@@ -52,8 +96,8 @@ func (s *Store) GetUser(email string) (*app.User, error) {
 // AddUser adds new user to the Postgres user store and returns it
 func (s *Store) AddUser(user *app.User) error {
 	query := `
-		INSERT INTO users (name, email, password, bio, image)
-		VALUES (:name, :email, :password, :bio, :image)
+		INSERT INTO users (name, email, password_hash, bio, image)
+		VALUES (:name, :email, :password_hash, :bio, :image)
 	`
 
 	_, err := s.db.NamedExec(query, &user)
@@ -65,12 +109,12 @@ func (s *Store) AddUser(user *app.User) error {
 }
 
 // UpdateUser modifies user by email and return updated user object
-func (s *Store) UpdateUser(email string, user *app.User) error {
+func (s *Store) UpdateUser(user *app.User) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.Update("users").
 			SetMap(user.Map()).
-			Where(sq.Eq{"email": email}).
+			Where(sq.Eq{"id": user.Id}).
 			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build update query")

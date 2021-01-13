@@ -69,5 +69,6 @@ func (s *Service) Register(req *RegisterRequest) (*app.User, error) {
 		return nil, app.InternalError(errors.Wrap(err, "failed to add new user"))
 	}
 
-	return user, nil
+	// Return added user
+	return s.store.GetUser(user.Email)
 }

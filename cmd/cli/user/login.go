@@ -10,6 +10,7 @@ import (
 
 	"github.com/dzeban/conduit/cmd/cli/debug"
 	"github.com/dzeban/conduit/cmd/cli/state"
+	User "github.com/dzeban/conduit/user"
 )
 
 var LoginOpts = []string{
@@ -19,7 +20,7 @@ var LoginOpts = []string{
 
 func Login(c *ishell.Context) {
 	// Construct login user request
-	u := user{}
+	req := User.LoginRequest{}
 
 	for _, opt := range c.Args {
 		kv := strings.Split(opt, "=")
@@ -30,17 +31,13 @@ func Login(c *ishell.Context) {
 
 		switch kv[0] {
 		case "email":
-			u.Email = kv[1]
+			req.User.Email = kv[1]
 		case "password":
-			u.Password = kv[1]
+			req.User.Password = kv[1]
 		}
 	}
 
-	ur := userRequest{
-		User: u,
-	}
-
-	resp, body, err := debug.MakeRequestWithDump("POST", "http://localhost:8080/users/login", ur)
+	resp, body, err := debug.MakeRequestWithDump("POST", "http://localhost:8080/users/login", req)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -8,6 +8,7 @@ import (
 // User is identified by email and authenticated by JWT.
 // Password is hidden by custom marshaller.
 type User struct {
+	Id    int    `json:"id"`
 	Name  string `json:"username"`
 	Email string `json:"email"`
 	Bio   string `json:"bio,omitempty"`

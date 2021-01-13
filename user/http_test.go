@@ -316,13 +316,13 @@ func TestUpdateHandler(t *testing.T) {
 		},
 		{
 			"Forbidden",
-			`{"user":{"email":"updated@example.com","password":"test"}}`,
+			`{"user":{"id": 2, "email":"updated@example.com","password":"test"}}`,
 			http.StatusUnauthorized,
 			app.ErrorUserUpdateForbidden,
 		},
 		{
 			"Valid",
-			`{"user":{"email":"test@example.com","password":"test"}}`,
+			`{"user":{"id": 1, "email":"test@example.com","password":"test"}}`,
 			http.StatusOK,
 			nil,
 		},

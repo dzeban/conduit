@@ -9,6 +9,7 @@ import (
 	"github.com/abiosoft/ishell"
 	"github.com/dzeban/conduit/cmd/cli/debug"
 	"github.com/dzeban/conduit/cmd/cli/state"
+	User "github.com/dzeban/conduit/user"
 )
 
 var UpdateOpts = []string{
@@ -21,7 +22,7 @@ var UpdateOpts = []string{
 
 func Update(c *ishell.Context) {
 	// Construct register user request
-	u := user{}
+	req := User.UpdateRequest{}
 
 	for _, opt := range c.Args {
 		kv := strings.Split(opt, "=")
@@ -32,23 +33,19 @@ func Update(c *ishell.Context) {
 
 		switch kv[0] {
 		case "username":
-			u.Name = kv[1]
+			req.User.Name = kv[1]
 		case "email":
-			u.Email = kv[1]
+			req.User.Email = kv[1]
 		case "bio":
-			u.Bio = kv[1]
+			req.User.Bio = kv[1]
 		case "image":
-			u.Image = kv[1]
+			req.User.Image = kv[1]
 		case "password":
-			u.Password = kv[1]
+			req.User.Password = kv[1]
 		}
 	}
 
-	ur := userRequest{
-		User: u,
-	}
-
-	resp, body, err := debug.MakeAuthorizedRequestWithDump("PUT", "http://localhost:8080/users/", ur)
+	resp, body, err := debug.MakeAuthorizedRequestWithDump("PUT", "http://localhost:8080/users/", req)
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -8,8 +8,9 @@ import (
 
 type Store interface {
 	GetUser(email string) (*app.User, error)
+	GetUserById(id int) (*app.User, error)
 	AddUser(user *app.User) error
-	UpdateUser(email string, user *app.User) error
+	UpdateUser(user *app.User) error
 }
 
 // Service provides a service for interacting with user accounts

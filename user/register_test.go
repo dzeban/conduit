@@ -92,20 +92,20 @@ func TestRegister(t *testing.T) {
 				var e app.Error
 				// Unwrap service.Error
 				if !errors.As(err, &e) {
-					t.Errorf("Register(%v): invalid error: expected %T, got %T", tt.req, e, err)
+					t.Errorf("Register(%+v): invalid error: expected %T, got %T", tt.req, e, err)
 					return
 				}
 
 				// Check error type
 				if e.Type != tt.errType {
-					t.Errorf("Register(%v): invalid error type: expected %v, got %v", tt.req, e.Type, tt.errType)
+					t.Errorf("Register(%+v): invalid error type: expected %v, got %v", tt.req, tt.errType, e.Type)
 					return
 				}
 
 				// Check error value
 				if tt.err != nil {
 					if e.Err != tt.err {
-						t.Errorf("Register(%v): invalid error value: expected %v, got %v", tt.req, e.Err, tt.err)
+						t.Errorf("Register(%+v): invalid error value: expected %v, got %v", tt.req, tt.err, e.Err)
 						return
 					}
 

@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/pkg/errors"
+	"math/rand"
 
 	"github.com/dzeban/conduit/app"
 )
@@ -15,18 +15,21 @@ const (
 
 var (
 	UserValid = app.User{
+		Id:           1,
 		Email:        "test@example.com",
 		Name:         "test",
 		PasswordHash: TestPasswordHash,
 	}
 
 	UserUpdatedUsername = app.User{
+		Id:           2,
 		Email:        "updated@example.com",
 		Name:         "updated",
 		PasswordHash: TestPasswordHash,
 	}
 
 	UserInvalid = app.User{
+		Id:           3,
 		Email:        "invalid_hash@example.com",
 		Name:         "invalid_hash",
 		PasswordHash: "xxx",
@@ -35,60 +38,82 @@ var (
 
 // UserStore is a fake implementation of user.Store as Go map
 type UserStore struct {
-	m map[string]*app.User
+	ById    map[int]app.User
+	ByEmail map[string]app.User
 }
 
 func NewUserStore() *UserStore {
 	us := &UserStore{
-		m: make(map[string]*app.User),
+		ById:    make(map[int]app.User),
+		ByEmail: make(map[string]app.User),
 	}
 
-	_ = us.AddUser(&UserValid)
-	_ = us.AddUser(&UserUpdatedUsername)
-	_ = us.AddUser(&UserInvalid)
+	for _, user := range []*app.User{&UserValid, &UserUpdatedUsername, &UserInvalid} {
+		err := us.AddUser(user)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return us
 }
 
 func (us *UserStore) GetUser(email string) (*app.User, error) {
-	return us.m[email], nil
+	u, ok := us.ByEmail[email]
+	if !ok {
+		return nil, nil
+	}
+	return &u, nil
+}
+
+func (us *UserStore) GetUserById(id int) (*app.User, error) {
+	u, ok := us.ById[id]
+	if !ok {
+		return nil, nil
+	}
+	return &u, nil
 }
 
 func (us *UserStore) AddUser(user *app.User) error {
-	us.m[user.Email] = user
+	if user.Id == 0 {
+		user.Id = 10 + rand.Int() // "10 + " is needed to avoid overlap with predefined mock users
+	}
+	us.ById[user.Id] = *user
+	us.ByEmail[user.Email] = *user
+
 	return nil
 }
 
-func (us *UserStore) UpdateUser(email string, user *app.User) error {
-	u := us.m[email]
-
-	if u == nil {
-		return errors.New("user not found")
+func (us *UserStore) UpdateUser(newUser *app.User) error {
+	user, ok := us.ById[newUser.Id]
+	if !ok {
+		return app.ErrorUserNotFound
 	}
 
-	if user.Name != "" {
-		u.Name = user.Name
+	if newUser.Name != "" {
+		user.Name = newUser.Name
 	}
 
-	if user.Bio != "" {
-		u.Bio = user.Bio
+	if newUser.Bio != "" {
+		user.Bio = newUser.Bio
 	}
 
-	if user.Image != "" {
-		u.Image = user.Image
+	if newUser.Image != "" {
+		user.Image = newUser.Image
 	}
 
-	if user.PasswordHash != "" {
-		u.PasswordHash = user.PasswordHash
+	if newUser.PasswordHash != "" {
+		user.PasswordHash = newUser.PasswordHash
 	}
 
 	// If we update email, recreate user under the new key
-	if user.Email != "" && email != user.Email {
-		delete(us.m, email)
-		u.Email = user.Email
+	if newUser.Email != "" && user.Email != newUser.Email {
+		delete(us.ByEmail, user.Email)
+		user.Email = newUser.Email
 	}
 
-	us.m[u.Email] = u
+	us.ByEmail[user.Email] = user
+	us.ById[user.Id] = user
 
 	return nil
 }

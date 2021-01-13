@@ -12,15 +12,15 @@ type UpdateRequest struct {
 }
 
 type UpdateUser struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"` // NOTE: Plaintext password from user
-	Bio      string `json:"bio"`
-	Image    string `json:"image"`
+	Name     string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"` // NOTE: Plaintext password from user
+	Bio      string `json:"bio,omitempty"`
+	Image    string `json:"image,omitempty"`
 }
 
 func (r *UpdateRequest) Validate() error {
-	if r.User.Username == "" &&
+	if r.User.Name == "" &&
 		r.User.Email == "" &&
 		r.User.Bio == "" &&
 		r.User.Image == "" &&
@@ -31,22 +31,31 @@ func (r *UpdateRequest) Validate() error {
 	return nil
 }
 
-// Update modifies user found by email with the new data passed in user.
+// Update modifies user found by id with the new data passed in user.
 // It returns updated user.
-func (s *Service) Update(email string, req *UpdateRequest) (*app.User, error) {
+func (s *Service) Update(id int, req *UpdateRequest) (*app.User, error) {
 	// Validate request
 	err := req.Validate()
 	if err != nil {
 		return nil, app.ValidationError(err)
 	}
 
-	// Set fields to update
-	user := &app.User{
-		Name:  req.User.Username,
-		Email: req.User.Email,
-		Bio:   req.User.Bio,
-		Image: req.User.Image,
+	// Check user exists
+	u, err := s.store.GetUserById(id)
+	if err != nil {
+		return nil, app.InternalError(errors.Wrap(err, "failed to get user for update"))
 	}
+
+	if u == nil {
+		return nil, app.ServiceError(app.ErrorUserNotFound)
+
+	}
+
+	// Set fields to update
+	u.Name = req.User.Name
+	u.Email = req.User.Email
+	u.Bio = req.User.Bio
+	u.Image = req.User.Image
 
 	// If password is being changed, make the hash from it
 	if req.User.Password != "" {
@@ -55,14 +64,14 @@ func (s *Service) Update(email string, req *UpdateRequest) (*app.User, error) {
 			return nil, app.InternalError(errors.Wrap(err, "failed to create password hsah"))
 		}
 
-		user.PasswordHash = hash
+		u.PasswordHash = hash
 	}
 
-	err = s.store.UpdateUser(email, user)
+	err = s.store.UpdateUser(u)
 	if err != nil {
 		return nil, app.ServiceError(errors.Wrap(err, "failed to update user"))
 	}
 
 	// Return updated user
-	return s.store.GetUser(email)
+	return s.store.GetUserById(id)
 }

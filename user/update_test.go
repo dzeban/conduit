@@ -20,7 +20,7 @@ func TestUpdate(t *testing.T) {
 	// Test cases
 	tests := []struct {
 		name    string
-		email   string
+		id      int
 		req     *UpdateRequest
 		errType app.ErrorType
 		err     error
@@ -28,7 +28,7 @@ func TestUpdate(t *testing.T) {
 	}{
 		{
 			"EmptyValidation",
-			mock.UserValid.Email,
+			mock.UserValid.Id,
 			&UpdateRequest{},
 			app.ErrorTypeValidation,
 			nil,
@@ -36,7 +36,7 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			"AbsentUser",
-			"no_such_user@example.com",
+			-1,
 			&UpdateRequest{UpdateUser{Bio: "blah"}},
 			app.ErrorTypeService,
 			nil,
@@ -44,10 +44,10 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			"UpdateUsername",
-			mock.UserUpdatedUsername.Email,
+			mock.UserUpdatedUsername.Id,
 			&UpdateRequest{
 				UpdateUser{
-					Username: newUsername,
+					Name: newUsername,
 				},
 			},
 			0,
@@ -60,7 +60,7 @@ func TestUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u, err := s.Update(tt.email, tt.req)
+			u, err := s.Update(tt.id, tt.req)
 			if err != nil {
 				var e app.Error
 				// Unwrap service.Error
@@ -122,7 +122,7 @@ func TestUpdatePassword(t *testing.T) {
 	}
 
 	s := NewService(store)
-	u, err := s.Update(userUpdatedPassword.Email, req)
+	u, err := s.Update(userUpdatedPassword.Id, req)
 	if err != nil {
 		t.Errorf("Update(%v): unexpected error: %v", req, err)
 	}
