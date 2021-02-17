@@ -11,6 +11,7 @@ import (
 func (s *Store) GetProfile(username string) (*app.Profile, error) {
 	query := `
 		SELECT
+			id,
 			name,
 			bio,
 			image
@@ -26,9 +27,10 @@ func (s *Store) GetProfile(username string) (*app.Profile, error) {
 	// We can't use StructScan to the app.User var because bio and image may be
 	// NULL so these fields must be handled via sql.NullString. We can't use
 	// these sql-specific types in app.User because they're, well, sql-specific
+	var id int
 	var name string
 	var bio, image sql.NullString
-	err := row.Scan(&name, &bio, &image)
+	err := row.Scan(&id, &name, &bio, &image)
 	if err == sql.ErrNoRows {
 		return nil, app.ErrorUserNotFound
 	} else if err != nil {
@@ -36,6 +38,7 @@ func (s *Store) GetProfile(username string) (*app.Profile, error) {
 	}
 
 	profile := app.Profile{
+		Id:    id,
 		Name:  name,
 		Bio:   bio.String,
 		Image: image.String,

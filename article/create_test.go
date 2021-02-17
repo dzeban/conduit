@@ -105,7 +105,7 @@ func TestCreate(t *testing.T) {
 		},
 	}
 
-	s := NewService(mock.NewArticleStore())
+	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -22,7 +22,9 @@ type User struct {
 	PasswordHash string `json:"-"`
 }
 
-func (u User) Map() map[string]interface{} {
+// UpdateMap returns map of fields to be updated. It sets only subset of fields
+// that are allowed to be updated and set it if it contains non empty values.
+func (u User) UpdateMap() map[string]interface{} {
 	m := make(map[string]interface{})
 
 	if u.Name != "" {

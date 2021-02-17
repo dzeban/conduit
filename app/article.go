@@ -6,6 +6,7 @@ import (
 
 // Article represents a single article
 type Article struct {
+	Id          int       `json:"id"`
 	Slug        string    `json:"slug"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
@@ -19,6 +20,29 @@ type Article struct {
 	// FavoritesCount int `json:"favoritesCount"`
 }
 
+// UpdateMap returns map of fields to be updated. It sets only subset of fields
+// that are allowed to be updated and set it if it contains non empty values.
+func (a Article) UpdateMap() map[string]interface{} {
+	m := make(map[string]interface{})
+
+	if a.Title != "" {
+		m["title"] = a.Title
+	}
+	if a.Description != "" {
+		m["description"] = a.Description
+	}
+	if a.Body != "" {
+		m["body"] = a.Body
+	}
+
+	emptyTime := time.Time{}
+	if a.Updated != emptyTime {
+		m["updated"] = a.Updated
+	}
+
+	return m
+}
+
 // ArticleServiceConfig describes configuration for ArticleService
 type ArticleServiceConfig struct {
 	Type   string `default:"postgres"`
@@ -27,9 +51,10 @@ type ArticleServiceConfig struct {
 }
 
 type ArticleListFilter struct {
-	Username string
-	Limit    uint64
-	Offset   uint64
+	CurrentUser *User // used for favorites and following filtering
+	Author      *Profile
+	Limit       uint64
+	Offset      uint64
 }
 
 // NewArticleListFilter creates filter with default values
@@ -40,11 +65,19 @@ func NewArticleListFilter() ArticleListFilter {
 	}
 }
 
-func (f ArticleListFilter) Map() map[string]interface{} {
-	m := make(map[string]interface{})
-	if f.Username != "" {
-		m["username"] = f.Username
+func (f ArticleListFilter) Validate() error {
+	// Silly filters to save database from huge queries
+	if f.Limit > 100 || f.Offset > 10000 {
+		return ErrorArticleInvalidFilter
 	}
-
-	return m
+	return nil
 }
+
+// func (f ArticleListFilter) Map() map[string]interface{} {
+// 	m := make(map[string]interface{})
+// 	if f.Username != "" {
+// 		m["username"] = f.Username
+// 	}
+
+// 	return m
+// }

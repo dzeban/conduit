@@ -6,7 +6,7 @@ import (
 
 	"github.com/abiosoft/ishell"
 
-	"github.com/dzeban/conduit/app"
+	Article "github.com/dzeban/conduit/article"
 	"github.com/dzeban/conduit/cmd/cli/debug"
 )
 
@@ -17,7 +17,7 @@ var CreateOpts = []string{
 }
 
 func Create(c *ishell.Context) {
-	a := app.Article{}
+	req := Article.CreateRequest{}
 
 	for _, opt := range c.Args {
 		kv := strings.Split(opt, "=")
@@ -28,19 +28,15 @@ func Create(c *ishell.Context) {
 
 		switch kv[0] {
 		case "title":
-			a.Title = kv[1]
+			req.Article.Title = kv[1]
 		case "description":
-			a.Description = kv[1]
+			req.Article.Description = kv[1]
 		case "body":
-			a.Body = kv[1]
+			req.Article.Body = kv[1]
 		}
 	}
 
-	ar := app.ArticleCreateRequest{
-		Article: a,
-	}
-
-	_, _, err := debug.MakeAuthorizedRequestWithDump("POST", "http://localhost:8080/articles/", ar)
+	_, _, err := debug.MakeAuthorizedRequestWithDump("POST", "http://localhost:8080/articles/", req)
 	if err != nil {
 		fmt.Println(err)
 		return

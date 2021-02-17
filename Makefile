@@ -1,4 +1,4 @@
-.PHONY: run test build install up down start stop swagger-up swagger-down
+.PHONY: run test build install up down start stop swagger-up swagger-down cli psql
 
 run: test build up
 	./conduit
@@ -12,8 +12,11 @@ build:
 install:
 	go install ./cmd/conduit
 
-up:
+restart:
 	docker-compose down
+	docker-compose up --build
+
+up:
 	docker-compose up --build
 
 down:

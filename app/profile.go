@@ -2,6 +2,7 @@ package app
 
 // Profile is a public user info with restricted set of fields
 type Profile struct {
+	Id        int    `json:"id"`
 	Name      string `json:"username"`
 	Bio       string `json:"bio"`
 	Image     string `json:"image"`     // base64 encoded

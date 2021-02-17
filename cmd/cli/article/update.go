@@ -6,7 +6,7 @@ import (
 
 	"github.com/abiosoft/ishell"
 
-	"github.com/dzeban/conduit/app"
+	Article "github.com/dzeban/conduit/article"
 	"github.com/dzeban/conduit/cmd/cli/debug"
 )
 
@@ -19,7 +19,7 @@ var UpdateOpts = []string{
 
 func Update(c *ishell.Context) {
 	var slug string
-	a := app.Article{}
+	req := Article.UpdateRequest{}
 
 	for _, opt := range c.Args {
 		kv := strings.Split(opt, "=")
@@ -32,11 +32,11 @@ func Update(c *ishell.Context) {
 		case "slug":
 			slug = kv[1]
 		case "title":
-			a.Title = kv[1]
+			req.Article.Title = kv[1]
 		case "description":
-			a.Description = kv[1]
+			req.Article.Description = kv[1]
 		case "body":
-			a.Body = kv[1]
+			req.Article.Body = kv[1]
 		}
 	}
 
@@ -45,16 +45,8 @@ func Update(c *ishell.Context) {
 		return
 	}
 
-	ar := app.ArticleUpdateRequest{
-		Article: app.ArticleUpdateRequestData{
-			Title:       a.Title,
-			Description: a.Description,
-			Body:        a.Body,
-		},
-	}
-
 	url := fmt.Sprintf("http://localhost:8080/articles/%s", slug)
-	_, _, err := debug.MakeAuthorizedRequestWithDump("PUT", url, ar)
+	_, _, err := debug.MakeAuthorizedRequestWithDump("PUT", url, req)
 	if err != nil {
 		fmt.Println(err)
 		return

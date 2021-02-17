@@ -2,8 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -12,98 +10,57 @@ import (
 	"github.com/dzeban/conduit/app"
 )
 
-// List returns n articles from Postgres
-func (s Store) List(f app.ArticleListFilter) ([]app.Article, error) {
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query, args, err :=
-		psql.Select(`
-				a.slug as slug,
-				a.title as title,
-				a.description as description,
-				a.body as body,
-				a.created as created,
-				a.updated as updated,
-				a.author as username,
-				u.bio as bio,
-				u.image as image,
-				f.follows != '' as following
-			`).
-			From("articles a").
-			Join("users u on (a.author=u.name)").
-			LeftJoin("followers f on (u.name=f.follows)").
-			Where(f.Map()).
-			Limit(f.Limit).
-			Offset(f.Offset).
-			ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build select query")
-	}
-
-	rows, err := s.db.Queryx(query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to query articles")
-	}
-
-	var articles []app.Article
-
-	var title, slug, authorName string
-	var description, body, bio, image sql.NullString
-	var created, updated time.Time
-	var following sql.NullBool
-	for rows.Next() {
-		err = rows.Scan(
-			&slug, &title, &description, &body, &created, &updated,
-			&authorName, &bio, &image, &following,
-		)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		article := app.Article{
-			Slug:        slug,
-			Title:       title,
-			Description: description.String,
-			Body:        body.String,
-			Created:     created,
-			Updated:     updated,
-			Author: app.Profile{
-				Name:      authorName,
-				Bio:       bio.String,
-				Image:     image.String,
-				Following: following.Bool,
-			},
-		}
-
-		articles = append(articles, article)
-	}
-
-	return articles, nil
+// PostgresArticle is the same as app.Article but specific for articles list
+// queries. It expands Author type to its fields and uses sql.Null* types.
+// All of this is needed to allow scanning query result.
+type PostgresArticle struct {
+	Id          int
+	Slug        string
+	Title       string
+	Description sql.NullString
+	Body        sql.NullString
+	Created     time.Time
+	Updated     time.Time
+	AuthorId    int
+	AuthorName  string
+	AuthorBio   string
+	AuthorImage sql.NullString
+	Following   bool
 }
 
-func (s Store) Feed(f app.ArticleListFilter) ([]app.Article, error) {
-	// Articles feed query
+func (s Store) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query, args, err :=
-		psql.Select(`
+	q := psql.Select(`
+				a.id as id,
 				a.slug as slug,
 				a.title as title,
 				a.description as description,
 				a.body as body,
 				a.created as created,
 				a.updated as updated,
-				a.author as username,
-				u.bio as bio,
-				u.image as image,
-				f.follows != '' as following
+				a.author_id as author_id,
+				u.name as author_name,
+				u.bio as author_bio,
+				u.image as author_image
 			`).
-			From("articles a").
-			Join("users u on (a.author=u.name)").
-			LeftJoin("followers f on (u.name=f.follows)").
-			Where("f.follower=?", f.Username).
-			Limit(f.Limit).
-			Offset(f.Offset).
-			ToSql()
+		From("articles a").
+		Join("users u on (a.author_id = u.id)").
+		OrderBy("created DESC")
+
+	if f.CurrentUser != nil {
+		q = q.LeftJoin("followers f on (u.id = f.follows)").
+			Where("f.follower = ?", f.CurrentUser.Id).
+			Columns("f.follows != '' as following")
+	}
+
+	if f.Author != nil {
+		q = q.Where("author_id = ?", f.Author.Id)
+	}
+	// q = q.Where("favorite = ?", f.Favorite)
+
+	q = q.Limit(f.Limit).Offset(f.Offset)
+
+	query, args, err := q.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build select query")
 	}
@@ -112,46 +69,53 @@ func (s Store) Feed(f app.ArticleListFilter) ([]app.Article, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query articles")
 	}
+	defer rows.Close()
 
-	var articles []app.Article
-
-	var title, slug, authorName string
-	var description, body, bio, image sql.NullString
-	var created, updated time.Time
-	var following sql.NullBool
+	// We need to scan each row to the struct. But there are 2 problems here:
+	//
+	// 1. Some fields may be Null and thus need to be handled with sql.Null*
+	//    types. Structs that we scan into are from application level and don't
+	//    use sql specific types.
+	// 2. Columns set is dynamic. When query is performed with followers table
+	// 	  the result set has the "following" column.
+	//
+	// Because of this we use special PostgresArticle type that allows scanning
+	// directly into the struct and then create app.Article values from it.
+	var (
+		a        PostgresArticle
+		articles []*app.Article
+	)
 	for rows.Next() {
-		err = rows.Scan(
-			&slug, &title, &description, &body, &created, &updated,
-			&authorName, &bio, &image, &following,
-		)
+		err := rows.StructScan(&a)
 		if err != nil {
-			log.Println(err)
-			continue
+			return nil, errors.Wrap(err, "row scan failed")
 		}
 
-		article := app.Article{
-			Slug:        slug,
-			Title:       title,
-			Description: description.String,
-			Body:        body.String,
-			Created:     created,
-			Updated:     updated,
+		articles = append(articles, &app.Article{
+			Id:          a.Id,
+			Slug:        a.Slug,
+			Title:       a.Title,
+			Description: a.Description.String,
+			Body:        a.Body.String,
+			Created:     a.Created,
+			Updated:     a.Updated,
 			Author: app.Profile{
-				Name:      authorName,
-				Bio:       bio.String,
-				Image:     image.String,
-				Following: following.Bool,
+				Id:    a.AuthorId,
+				Name:  a.AuthorName,
+				Image: a.AuthorImage.String,
 			},
-		}
+		})
+	}
 
-		articles = append(articles, article)
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows scan error")
 	}
 
 	return articles, nil
 }
 
 // Get returns a single article by its slug
-func (s Store) Get(slug string) (*app.Article, error) {
+func (s Store) GetArticle(slug string) (*app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.Select(`
@@ -160,15 +124,16 @@ func (s Store) Get(slug string) (*app.Article, error) {
 				a.body as body,
 				a.created as created,
 				a.updated as updated,
-				a.author as username,
+				a.author_id as author_id,
+				u.name as author_name,
 				u.bio as bio,
 				u.image as image,
-				f.follows != '' as following
+				f.follows != 0 as following
 			`).
 			From("articles a").
-			Join("users u on (a.author=u.name)").
-			LeftJoin("followers f on (u.name=f.follows)").
-			Where(sq.Eq{"slug": slug}).
+			Join("users u on (a.author_id=u.id)").
+			LeftJoin("followers f on (u.id=f.follows)").
+			Where(sq.Eq{"a.slug": slug}).
 			ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build select query")
@@ -176,14 +141,16 @@ func (s Store) Get(slug string) (*app.Article, error) {
 
 	row := s.db.QueryRowx(query, args...)
 
+	// TODO: use PostgresArticle with sqlx.StructScan
 	var title, authorName string
+	var authorId int
 	var description, body, bio, image sql.NullString
 	var created, updated time.Time
 	var following sql.NullBool
 
 	err = row.Scan(
 		&title, &description, &body, &created, &updated,
-		&authorName, &bio, &image, &following,
+		&authorId, &authorName, &bio, &image, &following,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -199,6 +166,7 @@ func (s Store) Get(slug string) (*app.Article, error) {
 		Created:     created,
 		Updated:     updated,
 		Author: app.Profile{
+			Id:        authorId,
 			Name:      authorName,
 			Bio:       bio.String,
 			Image:     image.String,
@@ -209,19 +177,18 @@ func (s Store) Get(slug string) (*app.Article, error) {
 	return &article, nil
 }
 
-func (s Store) Create(a *app.Article) error {
+func (s Store) CreateArticle(a *app.Article) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.
 			Insert("articles").
-			Columns("slug", "title", "description", "body", "author").
-			Values(a.Slug, a.Title, a.Description, a.Body, a.Author.Name).
+			Columns("slug", "title", "description", "body", "author_id", "created", "updated").
+			Values(a.Slug, a.Title, a.Description, a.Body, a.Author.Id, a.Created, a.Updated).
 			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build insert query")
 	}
 
-	fmt.Println(query, args)
 	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute insert query")
@@ -230,18 +197,17 @@ func (s Store) Create(a *app.Article) error {
 	return nil
 }
 
-func (s Store) Delete(slug string) error {
+func (s Store) DeleteArticle(id int) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.
 			Delete("articles").
-			Where(sq.Eq{"slug": slug}).
+			Where(sq.Eq{"id": id}).
 			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build delete query")
 	}
 
-	fmt.Println(query, args)
 	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute delete query")
@@ -250,23 +216,18 @@ func (s Store) Delete(slug string) error {
 	return nil
 }
 
-func (s Store) Update(slug string, a *app.Article) error {
+func (s Store) UpdateArticle(a *app.Article) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.
 			Update("articles").
-			SetMap(map[string]interface{}{
-				"title":       a.Title,
-				"description": a.Description,
-				"body":        a.Body,
-			}).
-			Where(sq.Eq{"slug": slug}).
+			SetMap(a.UpdateMap()).
+			Where(sq.Eq{"id": a.Id}).
 			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build update query")
 	}
 
-	fmt.Println(query, args)
 	_, err = s.db.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute update query")

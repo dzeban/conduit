@@ -40,7 +40,7 @@ func TestUpdate(t *testing.T) {
 				},
 			},
 			app.ErrorTypeService,
-			app.ErrorArticleNotExists,
+			app.ErrorArticleNotFound,
 			nil,
 		},
 		{
@@ -84,11 +84,11 @@ func TestUpdate(t *testing.T) {
 		},
 	}
 
-	s := NewService(mock.NewArticleStore())
+	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := s.Update(tt.slug, &tt.req)
+			a, err := s.Update(tt.slug, &mock.Author, &tt.req)
 			if err != nil {
 				// Check error
 				var e app.Error
@@ -126,10 +126,10 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateTimestamp(t *testing.T) {
-	s := NewService(mock.NewArticleStore())
+	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
 
 	prevUpdated := mock.ArticleValid.Updated
-	a, err := s.Update(mock.ArticleValid.Slug, &UpdateRequest{
+	a, err := s.Update(mock.ArticleValid.Slug, &mock.Author, &UpdateRequest{
 		UpdateArticle{
 			Title: "new title",
 		},
@@ -140,5 +140,23 @@ func TestUpdateTimestamp(t *testing.T) {
 
 	if !a.Updated.After(prevUpdated) {
 		t.Errorf("Updated timestamp was not set after Update(): prev %v, current %v", prevUpdated, a.Updated)
+	}
+}
+
+func TestUpdateAuthorCheck(t *testing.T) {
+	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
+
+	invalidAuthor := app.Profile{
+		Id:   999,
+		Name: "Evil",
+	}
+	_, err := s.Update(mock.ArticleValid.Slug, &invalidAuthor, &UpdateRequest{
+		UpdateArticle{
+			Title: "new title",
+		},
+	})
+
+	if !errors.Is(err, app.ErrorArticleUpdateForbidden) {
+		t.Errorf("invalid error, expected '%v', got '%v'", app.ErrorArticleUpdateForbidden, err)
 	}
 }

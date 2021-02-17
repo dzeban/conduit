@@ -18,8 +18,15 @@ var (
 	ErrorUserUpdateForbidden = errors.New("user update forbidden")
 	ErrorPasswordMismatch    = errors.New("password mismatch")
 
-	ErrorArticleExists    = errors.New("article exists")
-	ErrorArticleNotExists = errors.New("article does not exist")
+	ErrorProfileNotFound = errors.New("profile not found")
+
+	ErrorArticleExists          = errors.New("article exists")
+	ErrorArticleNotFound        = errors.New("article not found")
+	ErrorArticleUpdateForbidden = errors.New("article update forbidden")
+	ErrorArticleDeleteForbidden = errors.New("article delete forbidden")
+	ErrorArticleInvalidLimit    = errors.New("invalid article list limit")
+	ErrorArticleInvalidOffset   = errors.New("invalid article list offset")
+	ErrorArticleInvalidFilter   = errors.New("invalid article list filter")
 
 	ErrorValidationUsernameIsRequired = errors.New("username is required")
 	ErrorValidationEmailIsRequired    = errors.New("email is required")
@@ -56,6 +63,10 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.Err.Error()
+}
+
+func (e Error) Unwrap() error {
+	return e.Err
 }
 
 func InternalError(err error) Error {

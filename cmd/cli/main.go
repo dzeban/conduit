@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/ishell"
 	"github.com/abiosoft/readline"
 
+	"github.com/dzeban/conduit/cmd/cli/article"
 	"github.com/dzeban/conduit/cmd/cli/profile"
 	"github.com/dzeban/conduit/cmd/cli/state"
 	"github.com/dzeban/conduit/cmd/cli/user"
@@ -86,54 +87,54 @@ func main() {
 
 	// article commands
 	{
-		// articleCmd := &ishell.Cmd{
-		// 	Name: "article",
-		// 	Help: "Interact with articles - get, list, etc",
-		// }
+		articleCmd := &ishell.Cmd{
+			Name: "article",
+			Help: "Interact with articles - get, list, etc",
+		}
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "get",
-		// 	Help:                "Get article by slug",
-		// 	Func:                article.Get,
-		// 	CompleterWithPrefix: OptsCompleter(article.GetOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "get",
+			Help:                "Get article by slug",
+			Func:                article.Get,
+			CompleterWithPrefix: OptsCompleter(article.GetOpts),
+		})
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "list",
-		// 	Help:                "List articles",
-		// 	Func:                article.List,
-		// 	CompleterWithPrefix: OptsCompleter(article.ListOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "list",
+			Help:                "List articles",
+			Func:                article.List,
+			CompleterWithPrefix: OptsCompleter(article.ListOpts),
+		})
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "feed",
-		// 	Help:                "Feed of articles",
-		// 	Func:                article.Feed,
-		// 	CompleterWithPrefix: OptsCompleter(article.FeedOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "feed",
+			Help:                "Feed of articles",
+			Func:                article.Feed,
+			CompleterWithPrefix: OptsCompleter(article.FeedOpts),
+		})
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "create",
-		// 	Help:                "Create article",
-		// 	Func:                article.Create,
-		// 	CompleterWithPrefix: OptsCompleter(article.CreateOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "create",
+			Help:                "Create article",
+			Func:                article.Create,
+			CompleterWithPrefix: OptsCompleter(article.CreateOpts),
+		})
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "update",
-		// 	Help:                "Update article",
-		// 	Func:                article.Update,
-		// 	CompleterWithPrefix: OptsCompleter(article.UpdateOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "update",
+			Help:                "Update article",
+			Func:                article.Update,
+			CompleterWithPrefix: OptsCompleter(article.UpdateOpts),
+		})
 
-		// articleCmd.AddCmd(&ishell.Cmd{
-		// 	Name:                "delete",
-		// 	Help:                "Delete article",
-		// 	Func:                article.Delete,
-		// 	CompleterWithPrefix: OptsCompleter(article.DeleteOpts),
-		// })
+		articleCmd.AddCmd(&ishell.Cmd{
+			Name:                "delete",
+			Help:                "Delete article",
+			Func:                article.Delete,
+			CompleterWithPrefix: OptsCompleter(article.DeleteOpts),
+		})
 
-		// cli.AddCmd(articleCmd)
+		cli.AddCmd(articleCmd)
 	}
 
 	cli.SetHistoryPath(".conduit_history")

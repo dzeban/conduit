@@ -13,9 +13,9 @@ type UpdateRequest struct {
 }
 
 type UpdateArticle struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Body        string `json:"body"`
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Body        string `json:"body,omitempty"`
 }
 
 func (r *UpdateRequest) Validate() error {
@@ -30,7 +30,7 @@ func (r *UpdateRequest) Validate() error {
 
 // Update modifies article found by slug with the new data in req.
 // Returns updated article.
-func (s *Service) Update(slug string, req *UpdateRequest) (*app.Article, error) {
+func (s *Service) Update(slug string, author *app.Profile, req *UpdateRequest) (*app.Article, error) {
 	// Validate request
 	err := req.Validate()
 	if err != nil {
@@ -44,7 +44,12 @@ func (s *Service) Update(slug string, req *UpdateRequest) (*app.Article, error) 
 	}
 
 	if a == nil {
-		return nil, app.ServiceError(app.ErrorArticleNotExists)
+		return nil, app.ServiceError(app.ErrorArticleNotFound)
+	}
+
+	// Check that article belongs to author
+	if a.Author.Id != author.Id {
+		return nil, app.ServiceError(app.ErrorArticleUpdateForbidden)
 	}
 
 	// Fill updated fields
@@ -64,7 +69,7 @@ func (s *Service) Update(slug string, req *UpdateRequest) (*app.Article, error) 
 	a.Updated = time.Now()
 
 	// Persist updated article in the store
-	err = s.store.UpdateArticle(slug, a)
+	err = s.store.UpdateArticle(a)
 	if err != nil {
 		return nil, app.InternalError(errors.Wrap(err, "failed to update article"))
 	}

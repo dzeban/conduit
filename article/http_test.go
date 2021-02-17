@@ -100,7 +100,7 @@ func TestCreateHandler(t *testing.T) {
 		},
 	}
 
-	s, err := NewHTTP(mock.NewArticleStore(), []byte(testSecret))
+	s, err := NewHTTP(mock.NewArticleStore(), mock.NewProfilesStore(), []byte(testSecret))
 	if err != nil {
 		t.Fatal(err)
 	}

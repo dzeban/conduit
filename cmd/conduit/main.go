@@ -11,6 +11,7 @@ import (
 	"github.com/koding/multiconfig"
 
 	"github.com/dzeban/conduit/app"
+	"github.com/dzeban/conduit/article"
 	"github.com/dzeban/conduit/postgres"
 	"github.com/dzeban/conduit/user"
 )
@@ -51,23 +52,23 @@ func main() {
 
 	log.Printf("using config: %#v\n", config)
 
-	// articleService, err := article.NewFromDSN(config.Articles.DSN, config.Articles.Secret)
-	// if err != nil {
-	// 	log.Fatal("cannot create article service: ", err)
-	// }
-
-	store, err := postgres.NewStore(config.Users.DSN)
+	pgStore, err := postgres.NewStore(config.Users.DSN)
 	if err != nil {
 		log.Fatal("cannot create user store: ", err)
 	}
 
-	userServer, err := user.NewHTTP(store, []byte(config.Users.Secret))
+	userServer, err := user.NewHTTP(pgStore, []byte(config.Users.Secret))
 	if err != nil {
 		log.Fatal("cannot create user service: ", err)
 	}
 
+	articleService, err := article.NewHTTP(pgStore, pgStore, []byte(config.Articles.Secret))
+	if err != nil {
+		log.Fatal("cannot create article service: ", err)
+	}
+
 	// Setup API endpoints
-	// router.Mount("/articles", articleService)
+	router.Mount("/articles", articleService)
 	router.Mount("/users", userServer)
 	// router.Mount("/profiles", userService)
 

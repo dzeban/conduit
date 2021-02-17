@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/abiosoft/ishell"
+
 	"github.com/dzeban/conduit/cmd/cli/debug"
 )
 

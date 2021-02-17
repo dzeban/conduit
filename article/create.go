@@ -58,15 +58,8 @@ func (s *Service) Create(req *CreateRequest, author *app.Profile) (*app.Article,
 		Slug: slug.Make(req.Article.Title) + "-" + uniuri.NewLen(SlugRandLen),
 	}
 
-	// Check if article exists
-	a, err := s.store.GetArticle(article.Slug)
-	if err != nil {
-		return nil, app.InternalError(errors.Wrap(err, "failed to check article exists"))
-	}
-
-	if a != nil {
-		return nil, app.ServiceError(app.ErrorArticleExists)
-	}
+	// NOTE: we don't need to check if article exists because article is
+	// identified by slug which is randomly generated
 
 	// Persist article in the store
 	err = s.store.CreateArticle(article)

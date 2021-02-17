@@ -113,7 +113,7 @@ func (s *Store) UpdateUser(user *app.User) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.Update("users").
-			SetMap(user.Map()).
+			SetMap(user.UpdateMap()).
 			Where(sq.Eq{"id": user.Id}).
 			ToSql()
 	if err != nil {

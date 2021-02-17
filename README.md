@@ -35,4 +35,5 @@ docker-compose.
 [ ] Move to Gin
 [ ] Remove down migrations
 [ ] Move migrations to the store
+[ ] Get rid of sql builder where it's not needed (except update methods)
 [x] Remove vendoring
