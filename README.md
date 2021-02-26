@@ -20,6 +20,8 @@ docker-compose.
 [x] Merge user/ subpackages into one "user" package. So we can avoid stupid
     types like service.Service and server.Server
 
+[ ] Implement profile service (follow/unfollow). It's required to implement
+    articles feed.
 [ ] Migrate service/article to "articles" package. Add article methods to
     postgres store.
 [ ] Delete ./service/ and ./store/
@@ -37,3 +39,10 @@ docker-compose.
 [ ] Move migrations to the store
 [ ] Get rid of sql builder where it's not needed (except update methods)
 [x] Remove vendoring
+
+Think about refactoring inspired by WTFDial:
+
+- Move service logic to the postgres package and merge it with queries. So
+  service type is inside the postgres package.
+- Instead of passing user into service method pass the context. And also use
+  this context for postgres queries.

@@ -47,13 +47,20 @@ func (u User) UpdateMap() map[string]interface{} {
 }
 
 // context.Context helpers
-type contextKey string
+type key int
+
+var contextKey key
 
 func (u *User) NewContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, contextKey(""), u)
+	return context.WithValue(ctx, contextKey, u)
 }
 
 func UserFromContext(ctx context.Context) (*User, bool) {
-	u, ok := ctx.Value(contextKey("")).(*User)
+	v := ctx.Value(contextKey)
+	if v == nil {
+		return nil, false
+	}
+
+	u, ok := v.(*User)
 	return u, ok
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/article"
 	"github.com/dzeban/conduit/postgres"
+	"github.com/dzeban/conduit/profile"
 	"github.com/dzeban/conduit/user"
 )
 
@@ -67,10 +68,15 @@ func main() {
 		log.Fatal("cannot create article service: ", err)
 	}
 
+	profileService, err := profile.NewHTTP(pgStore, []byte(config.Users.Secret))
+	if err != nil {
+		log.Fatal("cannot create profile service: ", err)
+	}
+
 	// Setup API endpoints
 	router.Mount("/articles", articleService)
 	router.Mount("/users", userServer)
-	// router.Mount("/profiles", userService)
+	router.Mount("/profiles", profileService)
 
 	log.Println("start listening on", server.Addr)
 	log.Fatal(server.ListenAndServe())

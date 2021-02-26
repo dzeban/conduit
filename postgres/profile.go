@@ -8,29 +8,42 @@ import (
 	"github.com/dzeban/conduit/app"
 )
 
-func (s *Store) GetProfile(username string) (*app.Profile, error) {
+// PostgresProfile is the same as app.Profile but suitable for StructScan
+// method because it has sql.Null* types.
+type PostgresProfile struct {
+	Id        int
+	Name      string
+	Bio       sql.NullString
+	Image     sql.NullString
+	Following bool
+}
+
+func (s *Store) GetProfile(username string, follower *app.User) (*app.Profile, error) {
 	query := `
 		SELECT
 			id,
 			name,
 			bio,
-			image
-		FROM
-			users
-		WHERE
-			name = $1
+			image,
+			follows IS NOT NULL AS following
+		FROM users u
+		LEFT JOIN followers f
+		ON (u.id = f.follows AND f.follower = $1)
+		WHERE u.name = $2;
 	`
 
-	row := s.db.QueryRowx(query, username)
+	// Set follower id if it's a request for authenticated user.
+	// If follower is not set then id will be 0 and "following" will always be
+	// False because ids start with 1.
+	followerId := 0
+	if follower != nil {
+		followerId = follower.Id
+	}
 
-	// Scan the row using simple Scan method.
-	// We can't use StructScan to the app.User var because bio and image may be
-	// NULL so these fields must be handled via sql.NullString. We can't use
-	// these sql-specific types in app.User because they're, well, sql-specific
-	var id int
-	var name string
-	var bio, image sql.NullString
-	err := row.Scan(&id, &name, &bio, &image)
+	row := s.db.QueryRowx(query, followerId, username)
+
+	var p PostgresProfile
+	err := row.StructScan(&p)
 	if err == sql.ErrNoRows {
 		return nil, app.ErrorUserNotFound
 	} else if err != nil {
@@ -38,23 +51,24 @@ func (s *Store) GetProfile(username string) (*app.Profile, error) {
 	}
 
 	profile := app.Profile{
-		Id:    id,
-		Name:  name,
-		Bio:   bio.String,
-		Image: image.String,
+		Id:        p.Id,
+		Name:      p.Name,
+		Bio:       p.Bio.String,
+		Image:     p.Image.String,
+		Following: p.Following,
 	}
 
 	return &profile, nil
 }
 
-func (s Store) FollowProfile(follower, follows string) error {
+func (s Store) FollowProfile(follower, followee *app.Profile) error {
 	query := `
-		INSERT INTO followers (follower, follows)
-		VALUES ($1, $2)
+		INSERT INTO followers (follower, followee)
+		VALUES (?, ?)
 		ON CONFLICT DO NOTHING
 	`
 
-	_, err := s.db.Exec(query, follower, follows)
+	_, err := s.db.Exec(query, follower.Id, followee.Id)
 	if err != nil {
 		return errors.Wrap(err, "failed to add follow relationship to db")
 	}
@@ -62,13 +76,13 @@ func (s Store) FollowProfile(follower, follows string) error {
 	return nil
 }
 
-func (s Store) UnfollowProfile(follower, follows string) error {
+func (s Store) UnfollowProfile(follower, followee *app.Profile) error {
 	query := `
 		DELETE FROM followers
-		WHERE follower=$1 AND follows=$2
+		WHERE follower = ? AND followee = ?
 	`
 
-	_, err := s.db.Exec(query, follower, follows)
+	_, err := s.db.Exec(query, follower.Id, followee.Id)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete follow relationship from db")
 	}
