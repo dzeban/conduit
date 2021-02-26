@@ -31,7 +31,7 @@ func NewHTTP(store Store, profilesStore ProfilesStore, secret []byte) (*Server, 
 
 	// Endpoints protected by JWT auth
 	s.router.Group(func(r chi.Router) {
-		r.Use(jwt.Auth(s.secret))
+		r.Use(jwt.Auth(s.secret, jwt.AuthTypeRequired))
 
 		r.Post("/", s.HandleCreate)
 		r.Put("/{slug}", s.HandleUpdate)

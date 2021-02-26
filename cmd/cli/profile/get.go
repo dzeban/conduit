@@ -28,7 +28,7 @@ func Get(c *ishell.Context) {
 	username := kv[1]
 
 	url := fmt.Sprintf("http://localhost:8080/profiles/%s", username)
-	_, _, err := debug.MakeRequestWithDump("GET", url, nil)
+	_, _, err := debug.MakeAuthorizedRequestWithDump("GET", url, nil)
 	if err != nil {
 		fmt.Println(err)
 		return

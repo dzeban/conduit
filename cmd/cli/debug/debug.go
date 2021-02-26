@@ -105,7 +105,10 @@ func MakeAuthorizedRequestWithDump(method, URL string, data interface{}, params 
 		return nil, nil, errors.Wrap(err, "failed to create http request")
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Token "+state.CurrentToken)
+
+	if state.CurrentToken != "" {
+		req.Header.Add("Authorization", "Token "+state.CurrentToken)
+	}
 
 	reqDump, err := httputil.DumpRequest(req, false)
 	if err != nil {

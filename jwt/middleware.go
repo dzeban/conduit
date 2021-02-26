@@ -15,13 +15,27 @@ var (
 	ErrJWTNoAuthorizationHeader = errors.New("no Authorization header")
 )
 
-func Auth(secret []byte) func(next http.Handler) http.Handler {
+type AuthType int
+
+const (
+	AuthTypeRequired AuthType = iota
+	AuthTypeOptional
+)
+
+func Auth(secret []byte, typ AuthType) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			authHeader, ok := r.Header["Authorization"]
 			if !ok {
-				http.Error(w, transport.ServerError(ErrJWTNoAuthorizationHeader), http.StatusUnauthorized)
-				return
+				if typ == AuthTypeRequired {
+					http.Error(w, transport.ServerError(ErrJWTNoAuthorizationHeader), http.StatusUnauthorized)
+					return
+				} else {
+					// If authorization header is absent pass to the next handler
+					// without updating context.
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 
 			u, err := userFromJWT(authHeader[0], secret)
