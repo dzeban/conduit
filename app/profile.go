@@ -13,3 +13,19 @@ type Profile struct {
 type ProfileResponse struct {
 	Profile Profile `json:"profile"`
 }
+
+// ProfileFromUser converts User type to Profile.
+// It sets Following field to false because it must be calculated by caller.
+func ProfileFromUser(u *User) *Profile {
+	if u == nil {
+		return nil
+	}
+
+	return &Profile{
+		Id:        u.Id,
+		Name:      u.Name,
+		Bio:       u.Bio,
+		Image:     u.Image,
+		Following: false,
+	}
+}

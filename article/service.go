@@ -18,7 +18,7 @@ type Store interface {
 // ProfilesStore provides helper to get author with all its fields (like id) by
 // username
 type ProfilesStore interface {
-	GetProfile(username string, follower *app.User) (*app.Profile, error)
+	GetProfile(username string, follower *app.Profile) (*app.Profile, error)
 }
 
 // Service provides methods for articles

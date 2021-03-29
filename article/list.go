@@ -14,7 +14,7 @@ func (s *Service) List(filter *app.ArticleListFilter) ([]*app.Article, error) {
 
 	// Fill author id in filter
 	if filter.Author != nil {
-		author, err := s.profileStore.GetProfile(filter.Author.Name, filter.CurrentUser)
+		author, err := s.profileStore.GetProfile(filter.Author.Name, app.ProfileFromUser(filter.CurrentUser))
 		if err != nil {
 			return nil, app.InternalError(errors.Wrap(err, "failed to get author profile"))
 		}

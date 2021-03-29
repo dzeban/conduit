@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Service) Get(username string, currentUser *app.User) (*app.Profile, error) {
-	p, err := s.store.GetProfile(username, currentUser)
+	p, err := s.store.GetProfile(username, app.ProfileFromUser(currentUser))
 	if err != nil {
 		return nil, app.InternalError(errors.Wrap(err, "failed to get profile"))
 	}

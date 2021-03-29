@@ -7,7 +7,7 @@ type Service struct {
 }
 
 type Store interface {
-	GetProfile(username string, follower *app.User) (*app.Profile, error)
+	GetProfile(username string, follower *app.Profile) (*app.Profile, error)
 	FollowProfile(follower, followee *app.Profile) error
 	UnfollowProfile(follower, followee *app.Profile) error
 }

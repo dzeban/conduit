@@ -18,7 +18,9 @@ var (
 	ErrorUserUpdateForbidden = errors.New("user update forbidden")
 	ErrorPasswordMismatch    = errors.New("password mismatch")
 
-	ErrorProfileNotFound = errors.New("profile not found")
+	ErrorProfileNotFound            = errors.New("profile not found")
+	ErrorProfileAlreadyFollowing    = errors.New("profile is already followed")
+	ErrorProfileAlreadyNotFollowing = errors.New("profile is already not followed")
 
 	ErrorArticleExists          = errors.New("article exists")
 	ErrorArticleNotFound        = errors.New("article not found")

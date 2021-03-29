@@ -27,8 +27,8 @@ func Unfollow(c *ishell.Context) {
 
 	username := kv[1]
 
-	url := fmt.Sprintf("http://localhost:8080/profiles/%s/unfollow", username)
-	_, _, err := debug.MakeAuthorizedRequestWithDump("POST", url, nil)
+	url := fmt.Sprintf("http://localhost:8080/profiles/%s/follow", username)
+	_, _, err := debug.MakeAuthorizedRequestWithDump("DELETE", url, nil)
 	if err != nil {
 		fmt.Println(err)
 		return

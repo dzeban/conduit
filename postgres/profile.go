@@ -18,17 +18,17 @@ type PostgresProfile struct {
 	Following bool
 }
 
-func (s *Store) GetProfile(username string, follower *app.User) (*app.Profile, error) {
+func (s *Store) GetProfile(username string, follower *app.Profile) (*app.Profile, error) {
 	query := `
 		SELECT
 			id,
 			name,
 			bio,
 			image,
-			follows IS NOT NULL AS following
+			followee IS NOT NULL AS following
 		FROM users u
 		LEFT JOIN followers f
-		ON (u.id = f.follows AND f.follower = $1)
+		ON (u.id = f.followee AND f.follower = $1)
 		WHERE u.name = $2;
 	`
 
@@ -64,7 +64,7 @@ func (s *Store) GetProfile(username string, follower *app.User) (*app.Profile, e
 func (s Store) FollowProfile(follower, followee *app.Profile) error {
 	query := `
 		INSERT INTO followers (follower, followee)
-		VALUES (?, ?)
+		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING
 	`
 
@@ -79,7 +79,7 @@ func (s Store) FollowProfile(follower, followee *app.Profile) error {
 func (s Store) UnfollowProfile(follower, followee *app.Profile) error {
 	query := `
 		DELETE FROM followers
-		WHERE follower = ? AND followee = ?
+		WHERE follower = $1 AND followee = $2
 	`
 
 	_, err := s.db.Exec(query, follower.Id, followee.Id)

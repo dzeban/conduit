@@ -32,7 +32,7 @@ func NewProfilesStore() *ProfilesStore {
 	return ps
 }
 
-func (ps *ProfilesStore) GetProfile(name string) (*app.Profile, error) {
+func (ps *ProfilesStore) GetProfile(name string, follower *app.Profile) (*app.Profile, error) {
 	p, ok := ps.m[name]
 	if !ok {
 		return nil, app.ErrorProfileNotFound

@@ -31,7 +31,7 @@ func NewHTTP(store Store, secret []byte) (*Server, error) {
 		r.Use(jwt.Auth(secret, jwt.AuthTypeRequired))
 
 		r.Post("/{username}/follow", s.HandleFollow)
-		r.Delete("/{username}/unfollow", s.HandleUnfollow)
+		r.Delete("/{username}/follow", s.HandleUnfollow)
 	})
 
 	return s, nil
@@ -66,5 +66,42 @@ func (s *Server) HandleGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonProfile)
 }
 
-func (s *Server) HandleFollow(w http.ResponseWriter, r *http.Request)   {}
-func (s *Server) HandleUnfollow(w http.ResponseWriter, r *http.Request) {}
+func (s *Server) HandleFollow(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	currentUser, _ := app.UserFromContext(r.Context())
+
+	p, err := s.service.Follow(currentUser, username)
+	if err != nil {
+		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	jsonProfile, err := json.Marshal(Response{Profile: *p})
+	if err != nil {
+		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	w.Write(jsonProfile)
+}
+
+func (s *Server) HandleUnfollow(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	currentUser, _ := app.UserFromContext(r.Context())
+
+	p, err := s.service.Unfollow(currentUser, username)
+	if err != nil {
+		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	jsonProfile, err := json.Marshal(Response{Profile: *p})
+	if err != nil {
+		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	w.Write(jsonProfile)
+}
