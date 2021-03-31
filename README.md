@@ -22,10 +22,10 @@ docker-compose.
 
 [x] Implement profile service (follow/unfollow). It's required to implement
     articles feed.
-[ ] Migrate service/article to "articles" package. Add article methods to
+[x] Migrate service/article to "articles" package. Add article methods to
     postgres store.
-[ ] Delete ./service/ and ./store/
-[ ] Fix cli util
+[x] Delete ./service/ and ./store/
+[x] Fix cli util
 
 [ ] Create predefined errors. Merge all .../error.go into app/error.go
 
