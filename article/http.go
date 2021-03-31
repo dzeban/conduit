@@ -34,6 +34,7 @@ func NewHTTP(store Store, profilesStore ProfilesStore, secret []byte) (*Server, 
 		r.Use(jwt.Auth(s.secret, jwt.AuthTypeRequired))
 
 		r.Post("/", s.HandleCreate)
+		r.Get("/feed", s.HandleFeed)
 		r.Put("/{slug}", s.HandleUpdate)
 		r.Delete("/{slug}", s.HandleDelete)
 	})
@@ -65,6 +66,57 @@ func (s *Server) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := json.Marshal(ResponseSingle{Article: *a})
+	if err != nil {
+		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	w.Write(resp)
+}
+
+func (s *Server) HandleFeed(w http.ResponseWriter, r *http.Request) {
+	// Construct filter from query params
+	params := r.URL.Query()
+	filter := app.NewArticleListFilter()
+
+	currentUser, ok := app.UserFromContext(r.Context())
+	if !ok {
+		http.Error(w, transport.ServerError(app.ErrorUserNotInContext), http.StatusUnauthorized)
+		return
+	}
+
+	filter.CurrentUser = currentUser
+
+	if limit := params.Get("limit"); limit != "" {
+		l, err := strconv.ParseUint(limit, 10, 64)
+		if err != nil {
+			http.Error(w, transport.ServerError(app.ErrorArticleInvalidLimit, err), http.StatusUnprocessableEntity)
+			return
+		}
+		filter.Limit = l
+	}
+
+	if offset := params.Get("offset"); offset != "" {
+		o, err := strconv.ParseUint(offset, 10, 64)
+		if err != nil {
+			http.Error(w, transport.ServerError(app.ErrorArticleInvalidOffset, err), http.StatusUnprocessableEntity)
+			return
+		}
+		filter.Offset = o
+	}
+
+	// Get the article list from service
+	articles, err := s.service.List(&filter)
+	if err != nil {
+		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Marshal response
+	resp, err := json.Marshal(ResponseMulti{
+		Articles: articles,
+		Count:    len(articles),
+	})
 	if err != nil {
 		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
 		return

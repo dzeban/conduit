@@ -20,7 +20,7 @@ docker-compose.
 [x] Merge user/ subpackages into one "user" package. So we can avoid stupid
     types like service.Service and server.Server
 
-[ ] Implement profile service (follow/unfollow). It's required to implement
+[x] Implement profile service (follow/unfollow). It's required to implement
     articles feed.
 [ ] Migrate service/article to "articles" package. Add article methods to
     postgres store.

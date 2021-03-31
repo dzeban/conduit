@@ -48,9 +48,9 @@ func (s Store) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
 		OrderBy("created DESC")
 
 	if f.CurrentUser != nil {
-		q = q.LeftJoin("followers f on (u.id = f.follows)").
+		q = q.LeftJoin("followers f on (u.id = f.followee)").
 			Where("f.follower = ?", f.CurrentUser.Id).
-			Columns("f.follows != '' as following")
+			Columns("f.followee != 0 as following")
 	}
 
 	if f.Author != nil {
@@ -128,11 +128,11 @@ func (s Store) GetArticle(slug string) (*app.Article, error) {
 				u.name as author_name,
 				u.bio as bio,
 				u.image as image,
-				f.follows != 0 as following
+				f.followee != 0 as following
 			`).
 			From("articles a").
-			Join("users u on (a.author_id=u.id)").
-			LeftJoin("followers f on (u.id=f.follows)").
+			Join("users u on (a.author_id = u.id)").
+			LeftJoin("followers f on (u.id = f.followee)").
 			Where(sq.Eq{"a.slug": slug}).
 			ToSql()
 	if err != nil {
