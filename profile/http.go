@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
@@ -24,14 +25,14 @@ func NewHTTP(store Store, secret []byte) (*Server, error) {
 
 	s.router.
 		With(jwt.Auth(secret, jwt.AuthTypeOptional)).
-		Get("/{username}", s.HandleGet)
+		Get("/{username}", transport.WithError(s.HandleGet))
 
 	// Endpoints protected by JWT auth
 	s.router.Group(func(r chi.Router) {
 		r.Use(jwt.Auth(secret, jwt.AuthTypeRequired))
 
-		r.Post("/{username}/follow", s.HandleFollow)
-		r.Delete("/{username}/follow", s.HandleUnfollow)
+		r.Post("/{username}/follow", transport.WithError(s.HandleFollow))
+		r.Delete("/{username}/follow", transport.WithError(s.HandleUnfollow))
 	})
 
 	return s, nil
@@ -46,62 +47,59 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-func (s *Server) HandleGet(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleGet(w http.ResponseWriter, r *http.Request) error {
 	username := chi.URLParam(r, "username")
 
 	currentUser, _ := app.UserFromContext(r.Context())
 
 	p, err := s.service.Get(username, currentUser)
 	if err != nil {
-		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	jsonProfile, err := json.Marshal(Response{Profile: *p})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonProfile)
+	return nil
 }
 
-func (s *Server) HandleFollow(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleFollow(w http.ResponseWriter, r *http.Request) error {
 	username := chi.URLParam(r, "username")
 
 	currentUser, _ := app.UserFromContext(r.Context())
 
 	p, err := s.service.Follow(currentUser, username)
 	if err != nil {
-		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	jsonProfile, err := json.Marshal(Response{Profile: *p})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonProfile)
+	return nil
 }
 
-func (s *Server) HandleUnfollow(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUnfollow(w http.ResponseWriter, r *http.Request) error {
 	username := chi.URLParam(r, "username")
 
 	currentUser, _ := app.UserFromContext(r.Context())
 
 	p, err := s.service.Unfollow(currentUser, username)
 	if err != nil {
-		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	jsonProfile, err := json.Marshal(Response{Profile: *p})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonProfile)
+	return nil
 }

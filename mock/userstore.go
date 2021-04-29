@@ -87,7 +87,7 @@ func (us *UserStore) AddUser(user *app.User) error {
 func (us *UserStore) UpdateUser(newUser *app.User) error {
 	user, ok := us.ById[newUser.Id]
 	if !ok {
-		return app.ErrorUserNotFound
+		panic("user not found")
 	}
 
 	if newUser.Name != "" {

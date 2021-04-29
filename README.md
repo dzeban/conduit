@@ -27,17 +27,19 @@ docker-compose.
 [x] Delete ./service/ and ./store/
 [x] Fix cli util
 
-[ ] Create predefined errors. Merge all .../error.go into app/error.go
+[x] Create predefined errors. Merge all .../error.go into app/error.go
 
-[ ] Make custom lower snake case marshaller in local json package and remove
-    json struct tags because they spoil types.
-    https://gist.github.com/Rican7/39a3dc10c1499384ca91
+[ ] Write functional tests
+
 [ ] Rewrite HTTP statuses to match API spec
 [ ] Configure linters
 [ ] Move to Gin
 [ ] Remove down migrations
 [ ] Move migrations to the store
 [ ] Get rid of sql builder where it's not needed (except update methods)
+[ ] Make custom lower snake case marshaller in local json package and remove
+    json struct tags because they spoil types.
+    https://gist.github.com/Rican7/39a3dc10c1499384ca91
 [x] Remove vendoring
 
 Think about refactoring inspired by WTFDial:

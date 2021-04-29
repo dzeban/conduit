@@ -6,6 +6,18 @@ import (
 	"github.com/dzeban/conduit/app"
 )
 
+var (
+	errorEmailIsRequired     = errors.New("email is required")
+	errorPasswordIsRequired  = errors.New("password is required")
+	errorPasswordMismatch    = errors.New("password mismatch")
+	errorUsernameIsRequired  = errors.New("username is required")
+	errorUserExists          = errors.New("user exists")
+	errorUserNotFound        = errors.New("user not found")
+	errorUserUpdateForbidden = errors.New("user update forbidden")
+	errorInvalidRequest      = errors.New("invalid request")
+	errorUserNotCreated      = errors.New("user not created")
+)
+
 type Store interface {
 	GetUser(email string) (*app.User, error)
 	GetUserById(id int) (*app.User, error)
@@ -31,7 +43,7 @@ func (s *Service) Get(email string) (*app.User, error) {
 	}
 
 	if u == nil {
-		return nil, app.ServiceError(app.ErrorUserNotFound)
+		return nil, app.ServiceError(errorUserNotFound)
 	}
 
 	return u, nil

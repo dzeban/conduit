@@ -13,7 +13,7 @@ func (s *Service) Unfollow(follower *app.User, username string) (*app.Profile, e
 	}
 
 	if !followee.Following {
-		return nil, app.ServiceError(app.ErrorProfileAlreadyNotFollowing)
+		return nil, app.ServiceError(errorProfileAlreadyNotFollowing)
 	}
 
 	err = s.store.UnfollowProfile(app.ProfileFromUser(follower), followee)
@@ -21,5 +21,10 @@ func (s *Service) Unfollow(follower *app.User, username string) (*app.Profile, e
 		return nil, app.InternalError(errors.Wrap(err, "failed to unfollow profile"))
 	}
 
-	return s.Get(username, follower)
+	p, err := s.Get(username, follower)
+	if err != nil {
+		return nil, app.InternalError(app.ErrorProfileNotFound)
+	}
+
+	return p, nil
 }

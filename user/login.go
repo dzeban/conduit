@@ -19,11 +19,11 @@ type LoginUser struct {
 
 func (r *LoginRequest) Validate() error {
 	if r.User.Email == "" {
-		return app.ErrorValidationEmailIsRequired
+		return errorEmailIsRequired
 	}
 
 	if r.User.Password == "" {
-		return app.ErrorValidationPasswordIsRequired
+		return errorPasswordIsRequired
 	}
 
 	return nil
@@ -34,7 +34,7 @@ func (s *Service) Login(req *LoginRequest) (*app.User, error) {
 	// Validate request
 	err := req.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	// Lookup user by email
@@ -44,7 +44,7 @@ func (s *Service) Login(req *LoginRequest) (*app.User, error) {
 	}
 
 	if user == nil {
-		return nil, app.ServiceError(app.ErrorUserNotFound)
+		return nil, app.ServiceError(errorUserNotFound)
 	}
 
 	// Check password
@@ -54,7 +54,7 @@ func (s *Service) Login(req *LoginRequest) (*app.User, error) {
 	}
 
 	if !ok {
-		return nil, app.ServiceError(app.ErrorPasswordMismatch)
+		return nil, app.AuthError(errorPasswordMismatch)
 	}
 
 	// Return the user

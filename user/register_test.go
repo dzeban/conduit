@@ -19,8 +19,8 @@ func TestRegister(t *testing.T) {
 		{
 			"EmptyValidation",
 			&RegisterRequest{},
-			app.ErrorTypeValidation,
-			nil,
+			app.ErrorTypeService,
+			nil, // Don't test for specific error because validation order may be changed
 		},
 		{
 			"EmailValidation",
@@ -30,8 +30,8 @@ func TestRegister(t *testing.T) {
 					Password: mock.TestPassword,
 				},
 			},
-			app.ErrorTypeValidation,
-			app.ErrorValidationEmailIsRequired,
+			app.ErrorTypeService,
+			errorEmailIsRequired,
 		},
 		{
 			"PasswordValidation",
@@ -41,8 +41,8 @@ func TestRegister(t *testing.T) {
 					Username: mock.UserValid.Name,
 				},
 			},
-			app.ErrorTypeValidation,
-			app.ErrorValidationPasswordIsRequired,
+			app.ErrorTypeService,
+			errorPasswordIsRequired,
 		},
 		{
 			"UsernameValidation",
@@ -52,8 +52,8 @@ func TestRegister(t *testing.T) {
 					Password: mock.TestPassword,
 				},
 			},
-			app.ErrorTypeValidation,
-			app.ErrorValidationUsernameIsRequired,
+			app.ErrorTypeService,
+			errorUsernameIsRequired,
 		},
 		{
 			"UserExists",
@@ -65,7 +65,7 @@ func TestRegister(t *testing.T) {
 				},
 			},
 			app.ErrorTypeService,
-			app.ErrorUserExists,
+			errorUserExists,
 		},
 		{
 			"Valid",

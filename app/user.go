@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
 )
 
 // User represents a user
@@ -54,6 +56,10 @@ var contextKey key
 func (u *User) NewContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, contextKey, u)
 }
+
+var (
+	ErrorUserNotInContext = errors.New("no user in context")
+)
 
 func UserFromContext(ctx context.Context) (*User, bool) {
 	v := ctx.Value(contextKey)

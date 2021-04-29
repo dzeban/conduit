@@ -9,7 +9,7 @@ func (s *Service) List(filter *app.ArticleListFilter) ([]*app.Article, error) {
 	// Validate filter
 	err := filter.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	// Fill author id in filter
@@ -22,5 +22,10 @@ func (s *Service) List(filter *app.ArticleListFilter) ([]*app.Article, error) {
 		filter.Author.Id = author.Id
 	}
 
-	return s.store.ListArticles(filter)
+	as, err := s.store.ListArticles(filter)
+	if err != nil {
+		return nil, app.InternalError(errors.Wrap(err, "failed to get list of articles"))
+	}
+
+	return as, nil
 }

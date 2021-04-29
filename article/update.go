@@ -34,7 +34,7 @@ func (s *Service) Update(slug string, author *app.Profile, req *UpdateRequest) (
 	// Validate request
 	err := req.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	// Find article
@@ -44,12 +44,12 @@ func (s *Service) Update(slug string, author *app.Profile, req *UpdateRequest) (
 	}
 
 	if a == nil {
-		return nil, app.ServiceError(app.ErrorArticleNotFound)
+		return nil, app.ServiceError(errorArticleNotFound)
 	}
 
 	// Check that article belongs to author
 	if a.Author.Id != author.Id {
-		return nil, app.ServiceError(app.ErrorArticleUpdateForbidden)
+		return nil, app.ServiceError(errorArticleUpdateForbidden)
 	}
 
 	// Fill updated fields
@@ -75,5 +75,10 @@ func (s *Service) Update(slug string, author *app.Profile, req *UpdateRequest) (
 	}
 
 	// Return updated article
-	return s.store.GetArticle(slug)
+	a, err = s.store.GetArticle(slug)
+	if err != nil {
+		return nil, app.InternalError(errors.Wrap(err, "failed to get article after update"))
+	}
+
+	return a, nil
 }

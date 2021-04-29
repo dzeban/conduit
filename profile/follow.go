@@ -13,7 +13,7 @@ func (s *Service) Follow(follower *app.User, username string) (*app.Profile, err
 	}
 
 	if followee.Following {
-		return nil, app.ServiceError(app.ErrorProfileAlreadyFollowing)
+		return nil, app.ServiceError(errorProfileAlreadyFollowing)
 	}
 
 	err = s.store.FollowProfile(app.ProfileFromUser(follower), followee)
@@ -21,5 +21,10 @@ func (s *Service) Follow(follower *app.User, username string) (*app.Profile, err
 		return nil, app.InternalError(errors.Wrap(err, "failed to follow profile"))
 	}
 
-	return s.Get(username, follower)
+	p, err := s.Get(username, follower)
+	if err != nil {
+		return nil, app.InternalError(app.ErrorProfileNotFound)
+	}
+
+	return p, nil
 }

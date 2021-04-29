@@ -2,6 +2,8 @@ package app
 
 import (
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Article represents a single article
@@ -68,16 +70,7 @@ func NewArticleListFilter() ArticleListFilter {
 func (f ArticleListFilter) Validate() error {
 	// Silly filters to save database from huge queries
 	if f.Limit > 100 || f.Offset > 10000 {
-		return ErrorArticleInvalidFilter
+		return errors.New("invalid article list filter")
 	}
 	return nil
 }
-
-// func (f ArticleListFilter) Map() map[string]interface{} {
-// 	m := make(map[string]interface{})
-// 	if f.Username != "" {
-// 		m["username"] = f.Username
-// 	}
-
-// 	return m
-// }

@@ -19,7 +19,7 @@ func TestDelete(t *testing.T) {
 			"NotExisting",
 			"xxx",
 			&mock.Author,
-			app.ErrorArticleNotFound,
+			errorArticleNotFound,
 		},
 		{
 			"Forbidden",
@@ -28,7 +28,7 @@ func TestDelete(t *testing.T) {
 				Id:   999,
 				Name: "Evil",
 			},
-			app.ErrorArticleDeleteForbidden,
+			errorArticleDeleteForbidden,
 		},
 		{
 			"Valid",
@@ -60,7 +60,7 @@ func TestDeleteForReal(t *testing.T) {
 	}
 
 	_, err = s.Get(mock.ArticleValid.Slug)
-	if !errors.Is(err, app.ErrorArticleNotFound) {
+	if !errors.Is(err, errorArticleNotFound) {
 		t.Errorf("Expected article not found after delete, got err '%v'", err)
 	}
 }

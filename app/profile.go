@@ -1,5 +1,11 @@
 package app
 
+import "github.com/pkg/errors"
+
+var (
+	ErrorProfileNotFound = errors.New("profile not found")
+)
+
 // Profile is a public user info with restricted set of fields
 type Profile struct {
 	Id        int    `json:"id"`

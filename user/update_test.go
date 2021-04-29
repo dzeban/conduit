@@ -30,7 +30,7 @@ func TestUpdate(t *testing.T) {
 			"EmptyValidation",
 			mock.UserValid.Id,
 			&UpdateRequest{},
-			app.ErrorTypeValidation,
+			app.ErrorTypeService,
 			nil,
 			nil,
 		},

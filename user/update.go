@@ -37,7 +37,7 @@ func (s *Service) Update(id int, req *UpdateRequest) (*app.User, error) {
 	// Validate request
 	err := req.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	// Check user exists
@@ -47,7 +47,7 @@ func (s *Service) Update(id int, req *UpdateRequest) (*app.User, error) {
 	}
 
 	if u == nil {
-		return nil, app.ServiceError(app.ErrorUserNotFound)
+		return nil, app.ServiceError(errorUserNotFound)
 
 	}
 
@@ -69,9 +69,14 @@ func (s *Service) Update(id int, req *UpdateRequest) (*app.User, error) {
 
 	err = s.store.UpdateUser(u)
 	if err != nil {
-		return nil, app.ServiceError(errors.Wrap(err, "failed to update user"))
+		return nil, app.InternalError(errors.Wrap(err, "failed to update user"))
 	}
 
 	// Return updated user
-	return s.store.GetUserById(id)
+	u, err = s.store.GetUserById(id)
+	if err != nil {
+		return nil, app.InternalError(errorUserNotFound)
+	}
+
+	return u, nil
 }

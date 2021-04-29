@@ -27,7 +27,7 @@ func TestUpdate(t *testing.T) {
 					Body:        "\n",
 				},
 			},
-			app.ErrorTypeValidation,
+			app.ErrorTypeService,
 			nil,
 			nil,
 		},
@@ -40,7 +40,7 @@ func TestUpdate(t *testing.T) {
 				},
 			},
 			app.ErrorTypeService,
-			app.ErrorArticleNotFound,
+			errorArticleNotFound,
 			nil,
 		},
 		{
@@ -156,7 +156,7 @@ func TestUpdateAuthorCheck(t *testing.T) {
 		},
 	})
 
-	if !errors.Is(err, app.ErrorArticleUpdateForbidden) {
-		t.Errorf("invalid error, expected '%v', got '%v'", app.ErrorArticleUpdateForbidden, err)
+	if !errors.Is(err, errorArticleUpdateForbidden) {
+		t.Errorf("invalid error, expected '%v', got '%v'", errorArticleUpdateForbidden, err)
 	}
 }

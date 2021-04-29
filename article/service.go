@@ -3,7 +3,22 @@ package article
 import (
 	"regexp"
 
+	"github.com/pkg/errors"
+
 	"github.com/dzeban/conduit/app"
+)
+
+var (
+	errorArticleExists          = errors.New("article exists")
+	errorArticleNotFound        = errors.New("article not found")
+	errorArticleUpdateForbidden = errors.New("article update forbidden")
+	errorArticleDeleteForbidden = errors.New("article delete forbidden")
+	errorInvalidRequest         = errors.New("invlaid request")
+	errorArticleInvalidLimit    = errors.New("invalid limit")
+	errorArticleInvalidOffset   = errors.New("invalid offset")
+
+	errorValidationTitleIsRequired = errors.New("title is required")
+	errorValidationBodyIsRequired  = errors.New("body is required")
 )
 
 // ArticleStore defines an interface to work with articles

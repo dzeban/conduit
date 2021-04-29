@@ -11,7 +11,6 @@ import (
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
 	"github.com/dzeban/conduit/mock"
-	"github.com/dzeban/conduit/transport"
 )
 
 const testSecret = "test"
@@ -27,19 +26,19 @@ func TestLoginHandler(t *testing.T) {
 			"Null",
 			"",
 			http.StatusUnprocessableEntity,
-			transport.ErrorUnmarshal,
+			errorInvalidRequest,
 		},
 		{
 			"Empty",
 			"{}",
-			http.StatusUnauthorized,
+			http.StatusUnprocessableEntity,
 			nil, // Don't check for specific validation error because validation order may change
 		},
 		{
 			"IncorrectPassword",
 			`{"user":{"email":"test@example.com","password":"incorrect"}}`,
 			http.StatusUnauthorized,
-			app.ErrorLogin,
+			errorPasswordMismatch,
 		},
 		{
 			"valid",
@@ -101,7 +100,7 @@ func TestGetHandler(t *testing.T) {
 				Email: "no_such_user@example.com",
 			},
 			http.StatusUnprocessableEntity,
-			app.ErrorUserNotFound,
+			errorUserNotFound,
 		},
 		{
 			"Valid",
@@ -164,7 +163,7 @@ func TestRegisterHandler(t *testing.T) {
 			"Null",
 			"",
 			http.StatusUnprocessableEntity,
-			transport.ErrorUnmarshal,
+			errorInvalidRequest,
 		},
 		{
 			"Empty",
@@ -176,7 +175,7 @@ func TestRegisterHandler(t *testing.T) {
 			"NoUsername",
 			`{"user":{"email":"test@example.com","password":"test"}}`,
 			http.StatusUnprocessableEntity,
-			app.ErrorRegister,
+			errorUsernameIsRequired,
 		},
 		{
 			"valid",
@@ -306,7 +305,7 @@ func TestUpdateHandler(t *testing.T) {
 			"Null",
 			"",
 			http.StatusUnprocessableEntity,
-			transport.ErrorUnmarshal,
+			errorInvalidRequest,
 		},
 		{
 			"Empty",
@@ -318,7 +317,7 @@ func TestUpdateHandler(t *testing.T) {
 			"Forbidden",
 			`{"user":{"id": 2, "email":"updated@example.com","password":"test"}}`,
 			http.StatusUnauthorized,
-			app.ErrorUserUpdateForbidden,
+			errorUserUpdateForbidden,
 		},
 		{
 			"Valid",

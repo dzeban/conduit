@@ -45,7 +45,7 @@ func (s *Store) GetProfile(username string, follower *app.Profile) (*app.Profile
 	var p PostgresProfile
 	err := row.StructScan(&p)
 	if err == sql.ErrNoRows {
-		return nil, app.ErrorUserNotFound
+		return nil, app.ErrorProfileNotFound
 	} else if err != nil {
 		return nil, errors.Wrap(err, "failed to query profile")
 	}

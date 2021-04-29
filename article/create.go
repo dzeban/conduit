@@ -28,11 +28,11 @@ type ArticleRequest struct {
 
 func (r *CreateRequest) Validate() error {
 	if empty.MatchString(r.Article.Title) {
-		return app.ErrorValidationTitleIsRequired
+		return errorValidationTitleIsRequired
 	}
 
 	if empty.MatchString(r.Article.Body) {
-		return app.ErrorValidationBodyIsRequired
+		return errorValidationBodyIsRequired
 	}
 
 	return nil
@@ -43,7 +43,7 @@ func (s *Service) Create(req *CreateRequest, author *app.Profile) (*app.Article,
 	// Validate request
 	err := req.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	article := &app.Article{

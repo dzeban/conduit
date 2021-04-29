@@ -19,15 +19,15 @@ type RegisterUser struct {
 
 func (r *RegisterRequest) Validate() error {
 	if r.User.Username == "" {
-		return app.ErrorValidationUsernameIsRequired
+		return errorUsernameIsRequired
 	}
 
 	if r.User.Email == "" {
-		return app.ErrorValidationEmailIsRequired
+		return errorEmailIsRequired
 	}
 
 	if r.User.Password == "" {
-		return app.ErrorValidationPasswordIsRequired
+		return errorPasswordIsRequired
 	}
 
 	return nil
@@ -38,7 +38,7 @@ func (s *Service) Register(req *RegisterRequest) (*app.User, error) {
 	// Validate request
 	err := req.Validate()
 	if err != nil {
-		return nil, app.ValidationError(err)
+		return nil, app.ServiceError(err)
 	}
 
 	// Check if user exists
@@ -48,7 +48,7 @@ func (s *Service) Register(req *RegisterRequest) (*app.User, error) {
 	}
 
 	if u != nil {
-		return nil, app.ServiceError(app.ErrorUserExists)
+		return nil, app.ServiceError(errorUserExists)
 	}
 
 	// Replace password with hash
@@ -70,5 +70,10 @@ func (s *Service) Register(req *RegisterRequest) (*app.User, error) {
 	}
 
 	// Return added user
-	return s.store.GetUser(user.Email)
+	u, err = s.store.GetUser(user.Email)
+	if err != nil {
+		return nil, app.InternalError(errorUserNotCreated)
+	}
+
+	return u, nil
 }

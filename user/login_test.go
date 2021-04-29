@@ -19,8 +19,8 @@ func TestLogin(t *testing.T) {
 		{
 			"EmptyValidation",
 			&LoginRequest{},
-			app.ErrorTypeValidation,
-			nil,
+			app.ErrorTypeService,
+			nil, // Don't test for specific error because validation order may be changed
 		},
 		{
 			"EmailValidation",
@@ -29,8 +29,8 @@ func TestLogin(t *testing.T) {
 					Password: mock.TestPassword,
 				},
 			},
-			app.ErrorTypeValidation,
-			app.ErrorValidationEmailIsRequired,
+			app.ErrorTypeService,
+			errorEmailIsRequired,
 		},
 		{
 			"PasswordValidation",
@@ -39,8 +39,8 @@ func TestLogin(t *testing.T) {
 					Email: mock.UserValid.Email,
 				},
 			},
-			app.ErrorTypeValidation,
-			app.ErrorValidationPasswordIsRequired,
+			app.ErrorTypeService,
+			errorPasswordIsRequired,
 		},
 		{
 			"NonExist",
@@ -51,7 +51,7 @@ func TestLogin(t *testing.T) {
 				},
 			},
 			app.ErrorTypeService,
-			app.ErrorUserNotFound,
+			errorUserNotFound,
 		},
 		{
 			"InvalidPassword",
@@ -61,8 +61,8 @@ func TestLogin(t *testing.T) {
 					Password: "invalid",
 				},
 			},
-			app.ErrorTypeService,
-			app.ErrorPasswordMismatch,
+			app.ErrorTypeAuth,
+			errorPasswordMismatch,
 		},
 		{
 			"InvalidPasswordHash",

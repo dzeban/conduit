@@ -1,6 +1,15 @@
 package profile
 
-import "github.com/dzeban/conduit/app"
+import (
+	"errors"
+
+	"github.com/dzeban/conduit/app"
+)
+
+var (
+	errorProfileAlreadyFollowing    = errors.New("profile is already followed")
+	errorProfileAlreadyNotFollowing = errors.New("profile is already not followed")
+)
 
 type Service struct {
 	store Store

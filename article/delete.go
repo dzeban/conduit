@@ -14,17 +14,17 @@ func (s *Service) Delete(slug string, author *app.Profile) error {
 	}
 
 	if a == nil {
-		return app.ServiceError(app.ErrorArticleNotFound)
+		return app.ServiceError(errorArticleNotFound)
 	}
 
 	// Check that article belongs to author
 	if a.Author.Id != author.Id {
-		return app.ServiceError(app.ErrorArticleDeleteForbidden)
+		return app.ServiceError(errorArticleDeleteForbidden)
 	}
 
 	err = s.store.DeleteArticle(a.Id)
 	if err != nil {
-		return app.ServiceError(errors.Wrap(err, "article delete failed"))
+		return app.InternalError(errors.Wrap(err, "article delete failed"))
 	}
 
 	return nil

@@ -7,9 +7,13 @@ func (s *Service) Get(slug string) (*app.Article, error) {
 
 	// Service store will return (nil, nil) when article not found.
 	// Here, we set application level error to avoid nil dereference.
-	if a == nil {
-		return nil, app.ErrorArticleNotFound
+	if a == nil && err == nil {
+		return nil, app.ServiceError(errorArticleNotFound)
 	}
 
-	return a, err
+	if err != nil {
+		return nil, app.InternalError(err)
+	}
+
+	return a, nil
 }

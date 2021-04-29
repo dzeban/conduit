@@ -20,7 +20,7 @@ func TestValidate(t *testing.T) {
 					Body:  "",
 				},
 			},
-			app.ErrorValidationTitleIsRequired,
+			errorValidationTitleIsRequired,
 		},
 		{
 			CreateRequest{
@@ -29,7 +29,7 @@ func TestValidate(t *testing.T) {
 					Body:  "x",
 				},
 			},
-			app.ErrorValidationTitleIsRequired,
+			errorValidationTitleIsRequired,
 		},
 		{
 			CreateRequest{
@@ -38,7 +38,7 @@ func TestValidate(t *testing.T) {
 					Body:  "",
 				},
 			},
-			app.ErrorValidationBodyIsRequired,
+			errorValidationBodyIsRequired,
 		},
 		{
 			CreateRequest{
@@ -48,7 +48,7 @@ func TestValidate(t *testing.T) {
 					Description: "x",
 				},
 			},
-			app.ErrorValidationTitleIsRequired,
+			errorValidationTitleIsRequired,
 		},
 		{
 			CreateRequest{
@@ -80,8 +80,8 @@ func TestCreate(t *testing.T) {
 		{
 			"EmptyValidation",
 			&CreateRequest{},
-			app.ErrorTypeValidation,
-			app.ErrorValidationTitleIsRequired,
+			app.ErrorTypeService,
+			errorValidationTitleIsRequired,
 		},
 		// NOTE: We should check the case when existing article is created but
 		// we can't do so because article uniquiness is checked by slug which is
@@ -135,6 +135,5 @@ func TestCreate(t *testing.T) {
 				}
 			}
 		})
-
 	}
 }

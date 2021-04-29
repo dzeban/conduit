@@ -11,7 +11,6 @@ import (
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
 	"github.com/dzeban/conduit/mock"
-	"github.com/dzeban/conduit/transport"
 )
 
 const testSecret = "test"
@@ -69,7 +68,7 @@ func TestCreateHandler(t *testing.T) {
 			"{",
 			http.StatusUnprocessableEntity,
 			nil,
-			transport.ErrorUnmarshal,
+			errorInvalidRequest,
 		},
 		{
 			"InvalidRequest",
@@ -77,7 +76,7 @@ func TestCreateHandler(t *testing.T) {
 			`{"article":{"title":"","description":"some","body":"some"}}`,
 			http.StatusUnprocessableEntity,
 			nil,
-			app.ErrorValidationTitleIsRequired,
+			errorValidationTitleIsRequired,
 		},
 		{
 			"Valid",

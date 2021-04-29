@@ -2,11 +2,10 @@ package user
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
@@ -28,15 +27,15 @@ func NewHTTP(store Store, secret []byte) (*Server, error) {
 	}
 
 	// Unauthenticated endpoints
-	s.router.Post("/", s.HandleUserRegister)
-	s.router.Post("/login", s.HandleUserLogin)
+	s.router.Post("/", transport.WithError(s.HandleUserRegister))
+	s.router.Post("/login", transport.WithError(s.HandleUserLogin))
 
 	// Endpoints protected by JWT auth
 	s.router.Group(func(r chi.Router) {
 		r.Use(jwt.Auth(s.secret, jwt.AuthTypeRequired))
 
-		r.Get("/", s.HandleUserGet)
-		r.Put("/", s.HandleUserUpdate)
+		r.Get("/", transport.WithError(s.HandleUserGet))
+		r.Put("/", transport.WithError(s.HandleUserUpdate))
 	})
 
 	return s, nil
@@ -53,118 +52,97 @@ type Response struct {
 	User app.User `json:"user"`
 }
 
-func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUserLogin(w http.ResponseWriter, r *http.Request) error {
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
 	var req LoginRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorUnmarshal), http.StatusUnprocessableEntity)
-		return
+		return app.ServiceError(errorInvalidRequest)
 	}
 
 	// Perform login in service
 	user, err := s.service.Login(&req)
 	if err != nil {
-		// Return correct error to the client
-		var e app.Error
-		if !errors.As(err, &e) {
-			http.Error(w, transport.ServerError(fmt.Errorf("invalid error data: %v", err)), http.StatusUnprocessableEntity)
-			return
-		}
-
-		if e.Type == app.ErrorTypeService || e.Type == app.ErrorTypeValidation {
-			http.Error(w, transport.ServerError(app.ErrorLogin, err), http.StatusUnauthorized)
-			return
-		}
-
-		http.Error(w, transport.ServerError(app.ErrorInternal, err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	// Generate JWT
 	token, err := jwt.New(user, s.secret)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorJWT, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "jwt.New"))
 	}
 
 	// Prepare and send reply with user data, including token
 	user.Token = token
 	jsonUser, err := json.Marshal(Response{User: *user})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonUser)
+	return nil
 }
 
-func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUserRegister(w http.ResponseWriter, r *http.Request) error {
 	// Decode user request from JSON body
 	decoder := json.NewDecoder(r.Body)
 	var req RegisterRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorUnmarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.ServiceError(errorInvalidRequest)
 	}
 
 	// Perform register in service
 	user, err := s.service.Register(&req)
 	if err != nil {
-		http.Error(w, transport.ServerError(app.ErrorRegister, err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	// Generate JWT
 	token, err := jwt.New(user, s.secret)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorJWT, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "jwt.New"))
 	}
 
 	// Prepare and send reply with user data, including token
 	user.Token = token
 	jsonUser, err := json.Marshal(Response{User: *user})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write(jsonUser)
+	return nil
 }
 
 // HandleUserGet gets the currently logged-in user. Requires authentication.
-func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUserGet(w http.ResponseWriter, r *http.Request) error {
 	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, transport.ServerError(app.ErrorUserNotInContext), http.StatusUnauthorized)
-		return
+		return app.AuthError(app.ErrorUserNotInContext)
 	}
 
 	u, err := s.service.Get(currentUser.Email)
 	if err != nil {
-		http.Error(w, transport.ServerError(err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	jsonUser, err := json.Marshal(Response{User: *u})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonUser)
+	return nil
 }
 
 // HandleUserUpdate changes currently logged-in user. Requires authentication.
-func (s *Server) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleUserUpdate(w http.ResponseWriter, r *http.Request) error {
 	currentUser, ok := app.UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, transport.ServerError(app.ErrorUserNotInContext), http.StatusUnauthorized)
-		return
+		return app.AuthError(app.ErrorUserNotInContext)
 	}
 
 	// Decode user request from JSON body
@@ -172,35 +150,31 @@ func (s *Server) HandleUserUpdate(w http.ResponseWriter, r *http.Request) {
 	var req UpdateRequest
 	err := decoder.Decode(&req)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorUnmarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.ServiceError(errorInvalidRequest)
 	}
 
 	// Check that user updates itself
 	if req.User.Email != "" && req.User.Email != currentUser.Email {
-		http.Error(w, transport.ServerError(app.ErrorUserUpdateForbidden), http.StatusUnauthorized)
-		return
+		return app.AuthError(errorUserUpdateForbidden)
 	}
 
 	u, err := s.service.Update(currentUser.Id, &req)
 	if err != nil {
-		http.Error(w, transport.ServerError(app.ErrorUpdate, err), http.StatusUnprocessableEntity)
-		return
+		return err
 	}
 
 	// Regenerate JWT
 	token, err := jwt.New(u, s.secret)
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorJWT, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "jwt.New"))
 	}
 	u.Token = token
 
 	jsonUser, err := json.Marshal(Response{User: *u})
 	if err != nil {
-		http.Error(w, transport.ServerError(transport.ErrorMarshal, err), http.StatusUnprocessableEntity)
-		return
+		return app.InternalError(errors.Wrap(err, "json.Marshal"))
 	}
 
 	w.Write(jsonUser)
+	return nil
 }

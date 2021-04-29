@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrJWTNoAuthorizationHeader = errors.New("no Authorization header")
+	errorJWTNoAuthorizationHeader = errors.New("no Authorization header")
 )
 
 type AuthType int
@@ -24,33 +24,30 @@ const (
 
 func Auth(secret []byte, typ AuthType) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+		return transport.WithError(func(w http.ResponseWriter, r *http.Request) error {
 			authHeader, ok := r.Header["Authorization"]
 			if !ok {
 				if typ == AuthTypeRequired {
-					http.Error(w, transport.ServerError(ErrJWTNoAuthorizationHeader), http.StatusUnauthorized)
-					return
+					return app.AuthError(errorJWTNoAuthorizationHeader)
 				} else {
 					// If authorization header is absent pass to the next handler
 					// without updating context.
 					next.ServeHTTP(w, r)
-					return
+					return nil
 				}
 			}
 
 			u, err := userFromJWT(authHeader[0], secret)
 			if err != nil {
-				http.Error(w, transport.ServerError(err), http.StatusUnauthorized)
-				return
+				return app.AuthError(errors.Wrap(err, "invalid JWT"))
 			}
 
 			// Store user in context for the further reference
 			authCtx := u.NewContext(r.Context())
 
 			next.ServeHTTP(w, r.WithContext(authCtx))
-		}
-
-		return http.HandlerFunc(fn)
+			return nil
+		})
 	}
 }
 
