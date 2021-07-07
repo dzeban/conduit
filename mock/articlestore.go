@@ -10,10 +10,11 @@ import (
 var (
 	ArticleValid = app.Article{
 		Id:          1,
+		Slug:        "title-q1w2",
 		Title:       "Title",
 		Description: "Description",
 		Body:        "Body",
-		Author:      Author,
+		Author:      Profile1,
 		Created:     time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC),
 		Updated:     time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC),
 	}
@@ -21,17 +22,23 @@ var (
 	ArticleUpdated = app.Article{
 		Id:          2,
 		Title:       "Other title",
+		Slug:        "other-title-azxs",
 		Description: "Other description",
 		Body:        "Other body",
-		Author:      Author,
+		Author:      Profile1,
 		Created:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
 		Updated:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
 	}
 
-	Author = app.Profile{
-		Id:   1,
-		Name: "author",
-		Bio:  "bio",
+	Article3 = app.Article{
+		Id:          3,
+		Title:       "Another title",
+		Slug:        "another-title-qwer",
+		Description: "Another description",
+		Body:        "Another body",
+		Author:      Profile2,
+		Created:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
+		Updated:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
 	}
 )
 
@@ -60,7 +67,20 @@ func (as *ArticleStore) CreateArticle(a *app.Article) error {
 }
 
 func (as *ArticleStore) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
-	panic("not implemented") // TODO: Implement
+	if f.Author != nil {
+		switch f.Author.Id {
+		case Profile1.Id:
+			return []*app.Article{&ArticleValid, &ArticleUpdated}, nil
+
+		case Profile2.Id:
+			return []*app.Article{&Article3}, nil
+
+		default:
+			return nil, nil
+		}
+	}
+
+	return []*app.Article{&ArticleValid, &ArticleUpdated, &Article3}, nil
 }
 
 func (as *ArticleStore) GetArticle(slug string) (*app.Article, error) {

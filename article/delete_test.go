@@ -18,7 +18,7 @@ func TestDelete(t *testing.T) {
 		{
 			"NotExisting",
 			"xxx",
-			&mock.Author,
+			&mock.Profile1,
 			errorArticleNotFound,
 		},
 		{
@@ -33,7 +33,7 @@ func TestDelete(t *testing.T) {
 		{
 			"Valid",
 			mock.ArticleValid.Slug,
-			&mock.Author,
+			&mock.Profile1,
 			nil,
 		},
 	}
@@ -54,9 +54,9 @@ func TestDelete(t *testing.T) {
 func TestDeleteForReal(t *testing.T) {
 	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
 
-	err := s.Delete(mock.ArticleValid.Slug, &mock.Author)
+	err := s.Delete(mock.ArticleValid.Slug, &mock.Profile1)
 	if err != nil {
-		t.Errorf("Delete(%v, %v): unexpected error '%v'", mock.ArticleValid.Slug, mock.Author, err)
+		t.Errorf("Delete(%v, %v): unexpected error '%v'", mock.ArticleValid.Slug, mock.Profile1, err)
 	}
 
 	_, err = s.Get(mock.ArticleValid.Slug)
