@@ -88,7 +88,7 @@ func TestUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := s.Update(tt.slug, &mock.Author, &tt.req)
+			a, err := s.Update(tt.slug, &mock.Profile1, &tt.req)
 			if err != nil {
 				// Check error
 				var e app.Error
@@ -129,7 +129,7 @@ func TestUpdateTimestamp(t *testing.T) {
 	s := NewService(mock.NewArticleStore(), mock.NewProfilesStore())
 
 	prevUpdated := mock.ArticleValid.Updated
-	a, err := s.Update(mock.ArticleValid.Slug, &mock.Author, &UpdateRequest{
+	a, err := s.Update(mock.ArticleValid.Slug, &mock.Profile1, &UpdateRequest{
 		UpdateArticle{
 			Title: "new title",
 		},

@@ -100,7 +100,7 @@ func TestCreate(t *testing.T) {
 					Body:        "new",
 				},
 			},
-			0,
+			-1,
 			nil,
 		},
 	}
@@ -109,7 +109,7 @@ func TestCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := s.Create(tt.req, &mock.Author)
+			_, err := s.Create(tt.req, &mock.Profile1)
 			if err != nil {
 				// Check error
 				var e app.Error

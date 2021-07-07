@@ -69,7 +69,7 @@ func NewArticleListFilter() ArticleListFilter {
 
 func (f ArticleListFilter) Validate() error {
 	// Silly filters to save database from huge queries
-	if f.Limit > 100 || f.Offset > 10000 {
+	if f.Limit == 0 || f.Limit > 100 || f.Offset > 10000 {
 		return errors.New("invalid article list filter")
 	}
 	return nil
