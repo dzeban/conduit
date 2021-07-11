@@ -19,6 +19,10 @@ func (s *Service) List(filter *app.ArticleListFilter) ([]*app.Article, error) {
 			return nil, app.InternalError(errors.Wrap(err, "failed to get author profile"))
 		}
 
+		if author == nil {
+			return nil, app.ServiceError(errorAuthorNotFound)
+		}
+
 		filter.Author.Id = author.Id
 	}
 
