@@ -40,6 +40,17 @@ var (
 		Created:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
 		Updated:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
 	}
+
+	ArticleToDelete = app.Article{
+		Id:          4,
+		Title:       "Deleted title",
+		Slug:        "deleted-title-azxs",
+		Description: "Deleted description",
+		Body:        "Deleted body",
+		Author:      Profile1,
+		Created:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
+		Updated:     time.Date(2019, 1, 2, 3, 4, 5, 0, time.UTC),
+	}
 )
 
 // ArticleStore is a fake implementation of article.Store as Go map
@@ -56,6 +67,8 @@ func NewArticleStore() *ArticleStore {
 
 	_ = as.CreateArticle(&ArticleValid)
 	_ = as.CreateArticle(&ArticleUpdated)
+	_ = as.CreateArticle(&Article3)
+	_ = as.CreateArticle(&ArticleToDelete)
 
 	return as
 }

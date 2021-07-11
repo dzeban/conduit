@@ -16,6 +16,7 @@ var (
 	errorInvalidRequest         = errors.New("invlaid request")
 	errorArticleInvalidLimit    = errors.New("invalid limit")
 	errorArticleInvalidOffset   = errors.New("invalid offset")
+	errorAuthorNotFound         = errors.New("author not found")
 
 	errorValidationTitleIsRequired = errors.New("title is required")
 	errorValidationBodyIsRequired  = errors.New("body is required")
