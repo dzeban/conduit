@@ -87,16 +87,22 @@ func (s *Server) HandleFeed(w http.ResponseWriter, r *http.Request) error {
 	filter.CurrentUser = currentUser
 
 	if limit := params.Get("limit"); limit != "" {
-		l, err := strconv.ParseUint(limit, 10, 64)
+		l, err := strconv.Atoi(limit)
 		if err != nil {
+			return app.ServiceError(errorArticleInvalidLimit)
+		}
+		if l < 1 {
 			return app.ServiceError(errorArticleInvalidLimit)
 		}
 		filter.Limit = l
 	}
 
 	if offset := params.Get("offset"); offset != "" {
-		o, err := strconv.ParseUint(offset, 10, 64)
+		o, err := strconv.Atoi(offset)
 		if err != nil {
+			return app.ServiceError(errorArticleInvalidOffset)
+		}
+		if o < 0 {
 			return app.ServiceError(errorArticleInvalidOffset)
 		}
 		filter.Offset = o
@@ -132,16 +138,22 @@ func (s *Server) HandleList(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if limit := params.Get("limit"); limit != "" {
-		l, err := strconv.ParseUint(limit, 10, 64)
+		l, err := strconv.Atoi(limit)
 		if err != nil {
+			return app.ServiceError(errorArticleInvalidLimit)
+		}
+		if l < 1 {
 			return app.ServiceError(errorArticleInvalidLimit)
 		}
 		filter.Limit = l
 	}
 
 	if offset := params.Get("offset"); offset != "" {
-		o, err := strconv.ParseUint(offset, 10, 64)
+		o, err := strconv.Atoi(offset)
 		if err != nil {
+			return app.ServiceError(errorArticleInvalidOffset)
+		}
+		if o < 0 {
 			return app.ServiceError(errorArticleInvalidOffset)
 		}
 		filter.Offset = o

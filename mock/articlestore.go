@@ -80,20 +80,40 @@ func (as *ArticleStore) CreateArticle(a *app.Article) error {
 }
 
 func (as *ArticleStore) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
+	articles := []*app.Article{&ArticleValid, &ArticleUpdated, &Article3}
+
+	// Mock feed for one user
+	if f.CurrentUser != nil && f.CurrentUser.Id == UserValid.Id {
+		articles = []*app.Article{&ArticleValid, &ArticleUpdated}
+	}
+
 	if f.Author != nil {
 		switch f.Author.Id {
 		case Profile1.Id:
-			return []*app.Article{&ArticleValid, &ArticleUpdated}, nil
+			articles = []*app.Article{&ArticleValid, &ArticleUpdated}
 
 		case Profile2.Id:
-			return []*app.Article{&Article3}, nil
+			articles = []*app.Article{&Article3}
 
 		default:
 			return nil, nil
 		}
 	}
 
-	return []*app.Article{&ArticleValid, &ArticleUpdated, &Article3}, nil
+	var result []*app.Article
+	if f.Offset > len(articles)-1 {
+		return nil, nil
+	}
+
+	limit := f.Limit
+	if limit > len(articles) {
+		limit = len(articles)
+	}
+	for i := f.Offset; i < limit; i++ {
+		result = append(result, articles[i])
+	}
+
+	return result, nil
 }
 
 func (as *ArticleStore) GetArticle(slug string) (*app.Article, error) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/dzeban/conduit/app"
 	"github.com/dzeban/conduit/jwt"
 	"github.com/dzeban/conduit/mock"
@@ -45,12 +46,12 @@ func (a *testArticle) Equals(b *app.Article) bool {
 
 // httpTest describe tests in the current file
 type httpTest struct {
-	name   string          // Test name
-	user   *app.User       // App user stored in the context that is making request
-	req    *http.Request   // Test request to send
-	status int             // Expected HTTP request status code
-	resp   *ResponseSingle // Expected response unmarshalled from JSON
-	err    error           // Expected error
+	name   string        // Test name
+	user   *app.User     // App user stored in the context that is making request
+	req    *http.Request // Test request to send
+	status int           // Expected HTTP request status code
+	resp   interface{}   // Expected response unmarshalled from JSON
+	err    error         // Expected error
 }
 
 // check fails test when httpTest tt is not passed. It validates HTTP response
@@ -73,16 +74,49 @@ func check(t *testing.T, tt httpTest, resp *http.Response) {
 	}
 
 	if tt.resp != nil {
-		var r ResponseSingle
-		err := json.Unmarshal(body, &r)
-		if err != nil {
-			t.Errorf("invalid response body: %v", err)
-			return
-		}
+		switch want := tt.resp.(type) {
+		case *ResponseSingle:
+			var r ResponseSingle
+			err := json.Unmarshal(body, &r)
+			if err != nil {
+				t.Errorf("invalid response body: %v", err)
+				return
+			}
 
-		a := testArticle(r.Article) // Coerse to custom type with Equals method
-		if !a.Equals(&tt.resp.Article) {
-			t.Errorf("response not matched, expected '%+v', got '%+v'", tt.resp.Article, r.Article)
+			a := testArticle(r.Article) // Coerse to custom type with Equals method
+			if !a.Equals(&want.Article) {
+				t.Errorf("response not matched, want '%+v', got '%+v'", want.Article, r.Article)
+				return
+			}
+
+		case *ResponseMulti:
+			var r ResponseMulti
+			err := json.Unmarshal(body, &r)
+			if err != nil {
+				t.Errorf("invalid response body: %v", err)
+				return
+			}
+
+			if r.Count != want.Count {
+				t.Errorf("response Count incorrect, want %v got %v, resp body %v", want.Count, r.Count, spew.Sdump(r))
+				return
+			}
+
+			if r.Count != len(r.Articles) {
+				t.Errorf("response Count not matching articles len, %v != %v", r.Count, len(r.Articles))
+				return
+			}
+
+			for i := range r.Articles {
+				a := testArticle(*r.Articles[i]) // Coerse to custom type with Equals method
+				if !a.Equals(want.Articles[i]) {
+					t.Errorf("response not matched, want '%+v', got '%+v'", want.Articles[i], r.Articles[i])
+					return
+				}
+			}
+
+		default:
+			t.Errorf("unexpected response type %T", want)
 		}
 	}
 }
@@ -233,6 +267,179 @@ func TestHTTPHandlers(t *testing.T) {
 			&ResponseSingle{mock.ArticleValid},
 			nil,
 		},
+
+		// --- List handler ---
+		{
+			"List/LimitValidation",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?limit=-1", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidLimit,
+		},
+		{
+			"List/LimitValidation2",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?limit=xx", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidLimit,
+		},
+		{
+			"List/LimitApply",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?limit=1", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 1,
+				Articles: []*app.Article{
+					&mock.ArticleValid,
+				},
+			},
+			nil,
+		},
+		{
+			"List/OffsetValidation",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?offset=-1", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidOffset,
+		},
+		{
+			"List/OffsetValidation",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?offset=xx", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidOffset,
+		},
+		{
+			"List/OffsetApply",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?offset=1", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 2,
+				Articles: []*app.Article{
+					&mock.ArticleUpdated,
+					&mock.Article3,
+				},
+			},
+			nil,
+		},
+		{
+			"List/ByAuthor",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/?author="+mock.Profile2.Name, nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 1,
+				Articles: []*app.Article{
+					&mock.Article3,
+				},
+			},
+			nil,
+		},
+		{
+			"List/Public",
+			nil,
+			httptest.NewRequest(http.MethodGet, "/", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 3,
+				Articles: []*app.Article{
+					&mock.ArticleValid,
+					&mock.ArticleUpdated,
+					&mock.Article3,
+				},
+			},
+			nil,
+		},
+
+		// --- Feed handler ---
+		{
+			"Feed/NoUser",
+			&app.User{},
+			httptest.NewRequest(http.MethodGet, "/feed", nil),
+			http.StatusUnauthorized,
+			nil,
+			// Don't check concrete error because it is returned by JWT middleware.
+			// We need to be sure that unauthorized request returns error.
+			nil,
+		},
+		{
+			"Feed/LimitValidation",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?limit=0", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidLimit,
+		},
+		{
+			"Feed/LimitValidation2",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?limit=xx", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidLimit,
+		},
+		{
+			"Feed/LimitApply",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?limit=1", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 1,
+				Articles: []*app.Article{
+					&mock.ArticleValid,
+				},
+			},
+			nil,
+		},
+		{
+			"Feed/OffsetValidation",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?offset=-1", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidOffset,
+		},
+		{
+			"Feed/OffsetValidation",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?offset=xx", nil),
+			http.StatusUnprocessableEntity,
+			nil,
+			errorArticleInvalidOffset,
+		},
+		{
+			"Feed/OffsetApply",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed?offset=1", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 1,
+				Articles: []*app.Article{
+					&mock.ArticleUpdated,
+				},
+			},
+			nil,
+		},
+		{
+			"Feed/Valid",
+			&mock.UserValid,
+			httptest.NewRequest(http.MethodGet, "/feed", nil),
+			http.StatusOK,
+			&ResponseMulti{
+				Count: 2,
+				Articles: []*app.Article{
+					&mock.ArticleValid,
+					&mock.ArticleUpdated,
+				},
+			},
+			nil,
+		},
 	}
 
 	s, err := NewHTTP(mock.NewArticleStore(), mock.NewProfilesStore(), []byte(testSecret))
@@ -257,56 +464,3 @@ func TestHTTPHandlers(t *testing.T) {
 		})
 	}
 }
-
-// func TestListHandler(t *testing.T) {
-// 	tests := []httpTest{
-// 		// LimitValidation
-// 		// OffsetValidation
-// 		// ByAuthor
-// 		// Public
-// 		{
-// 			"NonExisting",
-// 			nil,
-// 			"/xxxxxx",
-// 			"",
-// 			http.StatusUnprocessableEntity,
-// 			&ResponseSingle{app.Article{}}, // Ensure that nothing was returned in case of not found
-// 			errorArticleNotFound,
-// 		},
-// 		{
-// 			"Valid",
-// 			nil,
-// 			"/" + mock.ArticleValid.Slug,
-// 			"",
-// 			http.StatusOK,
-// 			&ResponseSingle{mock.ArticleValid},
-// 			nil,
-// 		},
-// 	}
-
-// 	s, err := NewHTTP(mock.NewArticleStore(), mock.NewProfilesStore(), []byte(testSecret))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			token, err := jwt.New(tt.user, []byte(testSecret))
-// 			if err != nil {
-// 				t.Errorf("failed to make JWT")
-// 				return
-// 			}
-
-// 			req := httptest.NewRequest(http.MethodGet, tt.target, strings.NewReader(tt.body))
-// 			req.Header.Add("Authorization", "Token "+token)
-
-// 			rr := httptest.NewRecorder()
-
-// 			s.ServeHTTP(rr, req)
-
-// 			resp := rr.Result()
-
-// 			check(t, tt, resp)
-// 		})
-// 	}
-// }

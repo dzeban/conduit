@@ -55,8 +55,8 @@ type ArticleServiceConfig struct {
 type ArticleListFilter struct {
 	CurrentUser *User // used for favorites and following filtering
 	Author      *Profile
-	Limit       uint64
-	Offset      uint64
+	Limit       int
+	Offset      int
 }
 
 // NewArticleListFilter creates filter with default values
