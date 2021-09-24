@@ -18,6 +18,8 @@ services:
       POSTGRES_USER: conduit
       POSTGRES_PASSWORD: conduit
       POSTGRES_DB: conduit
+    ports:
+      - 5432:5432
 
   migration:
     build:

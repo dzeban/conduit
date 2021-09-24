@@ -25,7 +25,7 @@ type PostgresArticle struct {
 	AuthorName  string
 	AuthorBio   string
 	AuthorImage sql.NullString
-	Following   bool
+	Following   sql.NullBool
 }
 
 func (s Store) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
@@ -58,7 +58,7 @@ func (s Store) ListArticles(f *app.ArticleListFilter) ([]*app.Article, error) {
 	}
 	// q = q.Where("favorite = ?", f.Favorite)
 
-	q = q.Limit(f.Limit).Offset(f.Offset)
+	q = q.Limit(uint64(f.Limit)).Offset(uint64(f.Offset))
 
 	query, args, err := q.ToSql()
 	if err != nil {
@@ -119,6 +119,7 @@ func (s Store) GetArticle(slug string) (*app.Article, error) {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	query, args, err :=
 		psql.Select(`
+				a.id as id,
 				a.title as title,
 				a.description as description,
 				a.body as body,
@@ -126,8 +127,8 @@ func (s Store) GetArticle(slug string) (*app.Article, error) {
 				a.updated as updated,
 				a.author_id as author_id,
 				u.name as author_name,
-				u.bio as bio,
-				u.image as image,
+				u.bio as author_bio,
+				u.image as author_image,
 				f.followee != 0 as following
 			`).
 			From("articles a").
@@ -141,17 +142,9 @@ func (s Store) GetArticle(slug string) (*app.Article, error) {
 
 	row := s.db.QueryRowx(query, args...)
 
-	// TODO: use PostgresArticle with sqlx.StructScan
-	var title, authorName string
-	var authorId int
-	var description, body, bio, image sql.NullString
-	var created, updated time.Time
-	var following sql.NullBool
+	var a PostgresArticle
 
-	err = row.Scan(
-		&title, &description, &body, &created, &updated,
-		&authorId, &authorName, &bio, &image, &following,
-	)
+	err = row.StructScan(&a)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -159,18 +152,19 @@ func (s Store) GetArticle(slug string) (*app.Article, error) {
 	}
 
 	article := app.Article{
-		Slug:        slug,
-		Title:       title,
-		Description: description.String,
-		Body:        body.String,
-		Created:     created,
-		Updated:     updated,
+		Id:          a.Id,
+		Slug:        a.Slug,
+		Title:       a.Title,
+		Description: a.Description.String,
+		Body:        a.Body.String,
+		Created:     a.Created,
+		Updated:     a.Updated,
 		Author: app.Profile{
-			Id:        authorId,
-			Name:      authorName,
-			Bio:       bio.String,
-			Image:     image.String,
-			Following: following.Bool,
+			Id:        a.AuthorId,
+			Name:      a.AuthorName,
+			Bio:       a.AuthorBio,
+			Image:     a.AuthorImage.String,
+			Following: a.Following.Bool,
 		},
 	}
 
@@ -203,6 +197,25 @@ func (s Store) DeleteArticle(id int) error {
 		psql.
 			Delete("articles").
 			Where(sq.Eq{"id": id}).
+			ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build delete query")
+	}
+
+	_, err = s.db.Exec(query, args...)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute delete query")
+	}
+
+	return nil
+}
+
+func (s Store) DeleteArticleBySlug(slug string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err :=
+		psql.
+			Delete("articles").
+			Where(sq.Eq{"slug": slug}).
 			ToSql()
 	if err != nil {
 		return errors.Wrap(err, "failed to build delete query")
